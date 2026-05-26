@@ -1,0 +1,33 @@
+{
+  "name": "@vdoc/mcp",
+  "version": "0.1.0",
+  "description": "Vdoc MCP stdio adapter for AI agents.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "vdoc-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build",
+    "prepack": "npm run build",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "start": "node dist/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

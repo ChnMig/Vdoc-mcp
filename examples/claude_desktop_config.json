@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "vdoc": {
+      "command": "npx",
+      "args": ["-y", "@vdoc/mcp"],
+      "env": {
+        "VDOC_BASE_URL": "https://your-vdoc.example.com",
+        "VDOC_MCP_TOKEN": "REPLACE_WITH_LOCAL_VDOC_MCP_TOKEN"
+      }
+    }
+  }
+}
