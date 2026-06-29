@@ -23,6 +23,37 @@ Set these environment variables in your agent MCP configuration:
 
 Do not pass tokens as CLI arguments. The adapter sends diagnostics to stderr only; stdout is reserved for MCP protocol messages.
 
+Do not put raw JWTs, MCP tokens, DB passwords, storage secrets, or `Authorization` header values in README files, logs, screenshots, issues, or shell history.
+
+## Local Vdoc Closure Path
+
+For a local backend and Admin that match the workspace docs, run from the workspace root:
+
+```sh
+scripts/vdoc-local-bootstrap.sh
+docker compose --env-file .env up -d --build
+cd Vdoc && go run ./tools/vdoc-demo-seed
+```
+
+The demo seed is optional. To run live backend E2E against the root Compose stack:
+
+```sh
+cd Vdoc
+./scripts/vdoc-e2e.sh live-compose --env-file ../.env --check-only
+./scripts/vdoc-e2e.sh live-compose --env-file ../.env
+```
+
+Live E2E resets the selected disposable `VDOC_TEST_POSTGRES_DB`, `vdoc_e2e` by default. It does not reset the application database from `VDOC_POSTGRES_DB`.
+
+Use the root release dry-run as the local gate before package release work:
+
+```sh
+scripts/vdoc-release-dry-run.sh --list
+scripts/vdoc-release-dry-run.sh
+```
+
+The dry-run does not publish `@vdoc/mcp` or deploy any service.
+
 ## Agent Config Example
 
 ```json
