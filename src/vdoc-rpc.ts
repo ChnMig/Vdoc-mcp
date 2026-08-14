@@ -23,6 +23,9 @@ interface JSONRPCFailure {
 
 type JSONRPCResponse = JSONRPCSuccess | JSONRPCFailure;
 
+const MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
+const MAX_HTTP_ERROR_CHARACTERS = 4096;
+
 interface JSONRPCErrorPayload {
   code: number;
   message: string;
@@ -76,12 +79,13 @@ async function callVdocRPC(
         authorization: config.token,
       },
       body: JSON.stringify({ jsonrpc: "2.0", id, method, params }),
+      redirect: "error",
       signal: controller.signal,
     });
 
-    const bodyText = await response.text();
+    const bodyText = await readResponseText(response);
     if (!response.ok) {
-      throw new VdocRPCError(`Vdoc MCP HTTP ${response.status}: ${bodyText}`);
+      throw new VdocRPCError(`Vdoc MCP HTTP ${response.status}: ${httpErrorPreview(bodyText)}`);
     }
 
     const payload = parseResponse(bodyText, id);
@@ -100,6 +104,41 @@ async function callVdocRPC(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function readResponseText(response: Response): Promise<string> {
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_RESPONSE_BYTES) {
+    throw new VdocRPCError(`Vdoc MCP response exceeds ${MAX_RESPONSE_BYTES} bytes.`);
+  }
+  if (response.body === null) {
+    return "";
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const parts: string[] = [];
+  let receivedBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      parts.push(decoder.decode());
+      return parts.join("");
+    }
+    receivedBytes += value.byteLength;
+    if (receivedBytes > MAX_RESPONSE_BYTES) {
+      await reader.cancel().catch(() => undefined);
+      throw new VdocRPCError(`Vdoc MCP response exceeds ${MAX_RESPONSE_BYTES} bytes.`);
+    }
+    parts.push(decoder.decode(value, { stream: true }));
+  }
+}
+
+function httpErrorPreview(body: string): string {
+  if (body.length <= MAX_HTTP_ERROR_CHARACTERS) {
+    return body;
+  }
+  return `${body.slice(0, MAX_HTTP_ERROR_CHARACTERS)}…[truncated]`;
 }
 
 function parseResponse(bodyText: string, expectedId: string): JSONRPCResponse {

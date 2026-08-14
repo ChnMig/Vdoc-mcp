@@ -4,11 +4,15 @@
 
 ## Install
 
+`@vdoc/mcp` is not published to the npm registry yet. Run or install the official GitHub repository directly:
+
 ```sh
-npm install -g @vdoc/mcp
+npx --yes github:ChnMig/Vdoc-mcp
+# Or install the GitHub version globally
+npm install -g git+https://github.com/ChnMig/Vdoc-mcp.git
 ```
 
-For one-off agent usage, run it through `npx` in the agent's MCP config.
+For one-off agent usage, prefer the `npx` GitHub source in the agent's MCP config.
 
 ## Configuration
 
@@ -61,7 +65,7 @@ The dry-run does not publish `@vdoc/mcp` or deploy any service.
   "mcpServers": {
     "vdoc": {
       "command": "npx",
-      "args": ["-y", "@vdoc/mcp"],
+      "args": ["--yes", "github:ChnMig/Vdoc-mcp"],
       "env": {
         "VDOC_BASE_URL": "https://your-vdoc.example.com",
         "VDOC_MCP_TOKEN": "REPLACE_WITH_LOCAL_VDOC_MCP_TOKEN"

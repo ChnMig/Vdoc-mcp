@@ -94,6 +94,37 @@ test("listVdocTools rejects missing JSON-RPC result", async (t) => {
   await assert.rejects(() => listVdocTools(configFor(server)), /exactly one of result or error/);
 });
 
+test("listVdocTools rejects oversized backend responses", async (t) => {
+  const server = await startServer(async (_request, res) => {
+    res.end("x".repeat(4 * 1024 * 1024 + 1));
+  });
+  t.after(() => server.close());
+
+  await assert.rejects(
+    () => listVdocTools(configFor(server)),
+    /response exceeds 4194304 bytes/,
+  );
+});
+
+test("listVdocTools refuses redirects before contacting the target", async (t) => {
+  let targetCalls = 0;
+  const target = await startServer(async ({ body }, res) => {
+    targetCalls += 1;
+    res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { tools: [] } }));
+  });
+  t.after(() => target.close());
+  const targetAddress = target.address();
+  const source = await startServer(async (_request, res) => {
+    res.statusCode = 307;
+    res.setHeader("location", `http://127.0.0.1:${targetAddress.port}/api/v1/open/mcp`);
+    res.end();
+  });
+  t.after(() => source.close());
+
+  await assert.rejects(() => listVdocTools(configFor(source)), /fetch|redirect/i);
+  assert.equal(targetCalls, 0);
+});
+
 function configFor(server) {
   const address = server.address();
   return {

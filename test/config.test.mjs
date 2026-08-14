@@ -35,13 +35,51 @@ test("loadConfig requires token", () => {
 test("loadConfig rejects invalid base URL", () => {
   assert.throws(
     () => loadConfig({ VDOC_BASE_URL: "not a url", VDOC_MCP_TOKEN: "vdoc_test_token" }),
-    /Invalid URL/,
+    /valid HTTP\(S\) URL/,
   );
 });
 
 test("loadConfig rejects invalid timeout", () => {
   assert.throws(
     () => loadConfig({ VDOC_BASE_URL: "https://vdoc.example.com", VDOC_MCP_TOKEN: "vdoc_test_token", VDOC_MCP_TIMEOUT_MS: "0" }),
-    /positive integer/,
+    /between 1 and 120000/,
+  );
+});
+
+test("loadConfig rejects remote plaintext and credential-bearing URLs", () => {
+  for (const endpoint of [
+    "http://vdoc.example.com/api/v1/open/mcp",
+    "https://user:pass@vdoc.example.com/api/v1/open/mcp",
+    "https://vdoc.example.com/api/v1/open/mcp?token=leak",
+  ]) {
+    assert.throws(
+      () => loadConfig({ VDOC_MCP_URL: endpoint, VDOC_MCP_TOKEN: "vdoc_test_token" }),
+      /HTTPS|credentials|query/,
+    );
+  }
+});
+
+test("loadConfig allows HTTP only for local development", () => {
+  for (const endpoint of [
+    "http://localhost:8080/api/v1/open/mcp",
+    "http://dev.localhost:8080/api/v1/open/mcp",
+    "http://127.0.0.1:8080/api/v1/open/mcp",
+    "http://[::1]:8080/api/v1/open/mcp",
+  ]) {
+    assert.equal(
+      loadConfig({ VDOC_MCP_URL: endpoint, VDOC_MCP_TOKEN: "vdoc_test_token" }).endpointUrl,
+      endpoint,
+    );
+  }
+});
+
+test("loadConfig rejects timeouts that overflow the supported request window", () => {
+  assert.throws(
+    () => loadConfig({
+      VDOC_BASE_URL: "https://vdoc.example.com",
+      VDOC_MCP_TOKEN: "vdoc_test_token",
+      VDOC_MCP_TIMEOUT_MS: "120001",
+    }),
+    /between 1 and 120000/,
   );
 });

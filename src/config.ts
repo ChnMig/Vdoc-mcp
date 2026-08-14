@@ -5,6 +5,7 @@ export interface VdocMCPConfig {
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
+const MAX_TIMEOUT_MS = 120_000;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): VdocMCPConfig {
   const endpointUrl = resolveEndpointUrl(env);
@@ -17,7 +18,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): VdocMCPConfig 
 function resolveEndpointUrl(env: NodeJS.ProcessEnv): string {
   const explicitUrl = trim(env.VDOC_MCP_URL);
   if (explicitUrl !== "") {
-    return normalizeUrl(explicitUrl, "VDOC_MCP_URL");
+    return validateEndpointUrl(explicitUrl, "VDOC_MCP_URL").toString();
   }
 
   const baseUrl = trim(env.VDOC_BASE_URL);
@@ -25,7 +26,7 @@ function resolveEndpointUrl(env: NodeJS.ProcessEnv): string {
     throw new Error("Set VDOC_MCP_URL or VDOC_BASE_URL before starting vdoc-mcp.");
   }
 
-  const url = new URL(baseUrl);
+  const url = validateEndpointUrl(baseUrl, "VDOC_BASE_URL");
   const basePath = url.pathname.replace(/\/+$/, "");
   url.pathname = `${basePath}/api/v1/open/mcp`;
   url.search = "";
@@ -47,18 +48,46 @@ function parseTimeout(raw: string | undefined): number {
     return DEFAULT_TIMEOUT_MS;
   }
   const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error("VDOC_MCP_TIMEOUT_MS must be a positive integer.");
+  if (!Number.isInteger(parsed) || parsed <= 0 || parsed > MAX_TIMEOUT_MS) {
+    throw new Error(`VDOC_MCP_TIMEOUT_MS must be an integer between 1 and ${MAX_TIMEOUT_MS}.`);
   }
   return parsed;
 }
 
-function normalizeUrl(raw: string, key: string): string {
+function validateEndpointUrl(raw: string, key: string): URL {
+  let url: URL;
   try {
-    return new URL(raw).toString();
+    url = new URL(raw);
   } catch {
-    throw new Error(`${key} must be a valid URL.`);
+    throw new Error(`${key} must be a valid HTTP(S) URL.`);
   }
+
+  if (
+    (url.protocol !== "https:" && url.protocol !== "http:") ||
+    url.username !== "" ||
+    url.password !== "" ||
+    url.search !== "" ||
+    url.hash !== ""
+  ) {
+    throw new Error(`${key} must be an HTTP(S) URL without credentials, query, or fragment.`);
+  }
+  if (url.protocol === "http:" && !isLocalDevelopmentHost(url.hostname)) {
+    throw new Error(`${key} must use HTTPS except for localhost or loopback development.`);
+  }
+  return url;
+}
+
+function isLocalDevelopmentHost(hostname: string): boolean {
+  const normalized = hostname
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.$/, "");
+  return (
+    normalized === "localhost" ||
+    normalized.endsWith(".localhost") ||
+    normalized === "127.0.0.1" ||
+    normalized === "::1"
+  );
 }
 
 function trim(value: string | undefined): string {
