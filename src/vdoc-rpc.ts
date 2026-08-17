@@ -28,6 +28,7 @@ type JSONRPCResponse = JSONRPCSuccess | JSONRPCFailure;
 // that supported payload instead of rejecting it at the adapter boundary.
 const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
 const MAX_HTTP_ERROR_CHARACTERS = 4096;
+const VDOC_STDIO_USER_AGENT = "vdoc-mcp/0.1.0 (stdio)";
 
 interface JSONRPCErrorPayload {
   code: number;
@@ -80,6 +81,8 @@ async function callVdocRPC(
       headers: {
         "content-type": "application/json",
         authorization: config.token,
+        "user-agent": VDOC_STDIO_USER_AGENT,
+        "x-vdoc-adapter": "stdio",
       },
       body: JSON.stringify({ jsonrpc: "2.0", id, method, params }),
       redirect: "error",

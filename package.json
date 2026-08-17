@@ -18,6 +18,7 @@
     "prepare": "npm run build",
     "prepack": "npm run build",
     "test": "npm run build && node --test test/*.test.mjs",
+    "verify:live-audit": "npm run build && node scripts/live-stdio-audit.mjs",
     "start": "node dist/index.js"
   },
   "engines": {

@@ -44,6 +44,8 @@ async function startBackendMock() {
     req.on("end", () => {
       const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
       assert.equal(req.headers.authorization, "vdoc_stdio_test_token");
+      assert.equal(req.headers["user-agent"], "vdoc-mcp/0.1.0 (stdio)");
+      assert.equal(req.headers["x-vdoc-adapter"], "stdio");
       res.setHeader("content-type", "application/json");
       if (body.method === "tools/list") {
         res.end(JSON.stringify({
