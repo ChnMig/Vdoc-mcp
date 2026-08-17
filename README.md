@@ -19,9 +19,10 @@ npm install -g "git+https://github.com/ChnMig/Vdoc-mcp.git#$VDOC_MCP_COMMIT"
 For one-off agent usage, prefer the pinned `npx` GitHub source in the agent's
 MCP config. Replace `<VDOC_MCP_COMMIT_FROM_WORKSPACE_LOCK>` in the shipped
 examples with the resolved 40-character value before use. Do not remove the
-fragment or replace it with a moving branch name. A standalone immutable
-install channel is not claimed until a release tag or checksummed bootstrap is
-published.
+fragment or replace it with a moving branch name. The reviewed lock is
+distributed in the checksummed
+[`v0.1.0-rc.1` workspace bootstrap](https://github.com/ChnMig/Vdoc/releases/tag/v0.1.0-rc.1);
+verify its `.sha256` file before running the workspace initializer.
 
 ## Configuration
 
