@@ -94,15 +94,26 @@ test("listVdocTools rejects missing JSON-RPC result", async (t) => {
   await assert.rejects(() => listVdocTools(configFor(server)), /exactly one of result or error/);
 });
 
+test("callVdocTool accepts a supported 5 MiB document response", async (t) => {
+  const content = "x".repeat(5 * 1024 * 1024 + 1);
+  const server = await startServer(async ({ body }, res) => {
+    res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { content } }));
+  });
+  t.after(() => server.close());
+
+  const result = await callVdocTool({ ...configFor(server), requestTimeoutMs: 5000 }, "get_latest_schema", {});
+  assert.equal(result.content.length, content.length);
+});
+
 test("listVdocTools rejects oversized backend responses", async (t) => {
   const server = await startServer(async (_request, res) => {
-    res.end("x".repeat(4 * 1024 * 1024 + 1));
+    res.end("x".repeat(16 * 1024 * 1024 + 1));
   });
   t.after(() => server.close());
 
   await assert.rejects(
-    () => listVdocTools(configFor(server)),
-    /response exceeds 4194304 bytes/,
+    () => listVdocTools({ ...configFor(server), requestTimeoutMs: 5000 }),
+    /response exceeds 16777216 bytes/,
   );
 });
 

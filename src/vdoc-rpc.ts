@@ -23,7 +23,10 @@ interface JSONRPCFailure {
 
 type JSONRPCResponse = JSONRPCSuccess | JSONRPCFailure;
 
-const MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
+// A valid OpenAPI upload may be 5 MiB before the JSON-RPC envelope and JSON
+// escaping are added. Keep a bounded streaming limit with enough headroom for
+// that supported payload instead of rejecting it at the adapter boundary.
+const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
 const MAX_HTTP_ERROR_CHARACTERS = 4096;
 
 interface JSONRPCErrorPayload {
