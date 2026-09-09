@@ -8,10 +8,11 @@ import {
 import type { VdocMCPConfig } from "./config.js";
 import { redactSecrets } from "./sanitize.js";
 import { callVdocTool, listVdocTools } from "./vdoc-rpc.js";
+import { packageVersion } from "./version.js";
 
 export function createVdocMCPServer(config: VdocMCPConfig): Server {
   const server = new Server(
-    { name: "vdoc", version: "0.1.0" },
+    { name: "vdoc", version: packageVersion },
     { capabilities: { tools: {} } },
   );
 

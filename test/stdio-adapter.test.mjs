@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import http from "node:http";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -8,6 +9,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const root = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
+const packageInfo = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 
 test("stdio adapter exposes backend tools through MCP", async (t) => {
   const server = await startBackendMock();
@@ -27,6 +29,7 @@ test("stdio adapter exposes backend tools through MCP", async (t) => {
   t.after(async () => client.close());
 
   await client.connect(transport);
+  assert.equal(client.getServerVersion().version, packageInfo.version);
 
   const tools = await client.listTools();
   assert.deepEqual(tools.tools.map((tool) => tool.name), ["list_projects", "list_document_branches", "list_api_endpoints"]);
@@ -51,7 +54,7 @@ async function startBackendMock() {
     req.on("end", () => {
       const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
       assert.equal(req.headers.authorization, "vdoc_stdio_test_token");
-      assert.equal(req.headers["user-agent"], "vdoc-mcp/0.1.0 (stdio)");
+      assert.equal(req.headers["user-agent"], `vdoc-mcp/${packageInfo.version} (stdio)`);
       assert.equal(req.headers["x-vdoc-adapter"], "stdio");
       res.setHeader("content-type", "application/json");
       if (body.method === "tools/list") {

@@ -18,6 +18,7 @@
     "build": "tsc -p tsconfig.json",
     "prepare": "npm run build",
     "prepack": "npm run build",
+    "release:package": "bash scripts/package-release.sh",
     "test": "npm run build && node --test test/*.test.mjs",
     "verify:live-audit": "npm run build && node scripts/live-stdio-audit.mjs",
     "start": "node dist/index.js"

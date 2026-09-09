@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { VdocMCPConfig } from "./config.js";
 import { redactSecrets } from "./sanitize.js";
+import { packageVersion } from "./version.js";
 
 export interface VdocToolDefinition {
   name: string;
@@ -28,7 +29,7 @@ type JSONRPCResponse = JSONRPCSuccess | JSONRPCFailure;
 // that supported payload instead of rejecting it at the adapter boundary.
 const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
 const MAX_HTTP_ERROR_CHARACTERS = 4096;
-const VDOC_STDIO_USER_AGENT = "vdoc-mcp/0.1.0 (stdio)";
+const VDOC_STDIO_USER_AGENT = `vdoc-mcp/${packageVersion} (stdio)`;
 
 interface JSONRPCErrorPayload {
   code: number;

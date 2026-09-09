@@ -1,13 +1,15 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import http from "node:http";
 import test from "node:test";
 
 import { callVdocTool, listVdocTools } from "../dist/vdoc-rpc.js";
+const packageInfo = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 
 test("listVdocTools forwards tools/list to backend", async (t) => {
   const server = await startServer(async ({ body, headers }, res) => {
     assert.equal(headers.authorization, "vdoc_test_token");
-    assert.equal(headers["user-agent"], "vdoc-mcp/0.1.0 (stdio)");
+    assert.equal(headers["user-agent"], `vdoc-mcp/${packageInfo.version} (stdio)`);
     assert.equal(headers["x-vdoc-adapter"], "stdio");
     assert.equal(body.method, "tools/list");
     res.end(JSON.stringify({
