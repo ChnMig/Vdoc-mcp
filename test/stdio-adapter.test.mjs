@@ -29,12 +29,19 @@ test("stdio adapter exposes backend tools through MCP", async (t) => {
   await client.connect(transport);
 
   const tools = await client.listTools();
-  assert.deepEqual(tools.tools.map((tool) => tool.name), ["list_projects"]);
+  assert.deepEqual(tools.tools.map((tool) => tool.name), ["list_projects", "list_document_branches", "list_api_endpoints"]);
 
   const result = await client.callTool({ name: "list_projects", arguments: {} });
   assert.equal(result.isError, undefined);
   assert.equal(result.content[0].type, "text");
   assert.deepEqual(JSON.parse(result.content[0].text), [{ id: "proj_1", name: "Example" }]);
+
+  const branches = await client.callTool({ name: "list_document_branches", arguments: { project_id: "proj_1", document_id: "doc_1" } });
+  assert.equal(branches.isError, undefined);
+  assert.equal(JSON.parse(branches.content[0].text)[0].id, "branch_1");
+  const endpoints = await client.callTool({ name: "list_api_endpoints", arguments: { project_id: "proj_1", document_id: "doc_1", version_id: "ver_1", method: "GET", path: "/widgets/{id}" } });
+  assert.equal(endpoints.isError, undefined);
+  assert.equal(JSON.parse(endpoints.content[0].text)[0].id, "endpoint_1");
 });
 
 async function startBackendMock() {
@@ -52,17 +59,24 @@ async function startBackendMock() {
           jsonrpc: "2.0",
           id: body.id,
           result: {
-            tools: [{ name: "list_projects", description: "List projects", inputSchema: { type: "object" } }],
+            tools: ["list_projects", "list_document_branches", "list_api_endpoints"].map((name) => ({ name, inputSchema: { type: "object" } })),
           },
         }));
         return;
       }
       if (body.method === "tools/call") {
-        assert.deepEqual(body.params, { name: "list_projects", arguments: {} });
+        const fixtures = {
+          list_projects: { args: {}, result: [{ id: "proj_1", name: "Example" }] },
+          list_document_branches: { args: { project_id: "proj_1", document_id: "doc_1" }, result: [{ id: "branch_1", name: "dev", document_id: "doc_1" }] },
+          list_api_endpoints: { args: { project_id: "proj_1", document_id: "doc_1", version_id: "ver_1", method: "GET", path: "/widgets/{id}" }, result: [{ id: "endpoint_1", method: "GET", path: "/widgets/{id}" }] },
+        };
+        const fixture = fixtures[body.params.name];
+        assert.ok(fixture, `unexpected tool ${body.params.name}`);
+        assert.deepEqual(body.params.arguments, fixture.args);
         res.end(JSON.stringify({
           jsonrpc: "2.0",
           id: body.id,
-          result: [{ id: "proj_1", name: "Example" }],
+          result: fixture.result,
         }));
         return;
       }

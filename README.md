@@ -30,6 +30,10 @@ distributed in the checksummed
 [Vdoc-site Docker Compose workspace bootstrap](https://vibe-doc.com/en/deployment);
 verify its `.sha256` file before running the workspace initializer.
 
+## Tool discovery
+
+Tool definitions are loaded from the deployed backend; the adapter has no hardcoded tool inventory. Updated backends expose `list_document_branches` to resolve a branch before its first publication, and `list_api_endpoints` to resolve endpoint IDs by version, method and exact path. Pair the updated backend with Vdoc Skill. Older release locks may still expose the earlier tool set.
+
 ## Configuration
 
 Set these environment variables in your agent MCP configuration:
