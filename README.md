@@ -1,3 +1,7 @@
+<p>
+  <img src="assets/vdoc-logo.png" width="96" height="96" alt="Vdoc logo" />
+</p>
+
 # Vdoc MCP
 
 `@vdoc/mcp` is the installable MCP stdio adapter for Vdoc. It does not implement Vdoc business logic locally. It forwards MCP `tools/list` and `tools/call` requests to a Vdoc backend at `/api/v1/open/mcp`.
