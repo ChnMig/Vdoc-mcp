@@ -8,11 +8,13 @@
 
 ## Install
 
+First [download and verify the Compose workspace bootstrap](https://vibe-doc.com/en/deployment). Its [source lock](https://github.com/ChnMig/Vdoc-site/blob/main/workspace/workspace.lock.json) is also browsable in Vdoc-site. Run the installation commands below from the extracted `vdoc-workspace` directory, or set `VDOC_WORKSPACE_LOCK` to its absolute lock path.
+
 `@vdoc/mcp` is not published to the npm registry yet. Resolve the adapter
 commit from a reviewed workspace bootstrap lock instead of a moving branch:
 
 ```sh
-VDOC_WORKSPACE_LOCK="${VDOC_WORKSPACE_LOCK:-../workspace.lock.json}"
+VDOC_WORKSPACE_LOCK="${VDOC_WORKSPACE_LOCK:-./workspace.lock.json}"
 VDOC_MCP_COMMIT="$(jq -er '.repositories[] | select(.path == "Vdoc-mcp") | .commit' "$VDOC_WORKSPACE_LOCK")"
 printf '%s' "$VDOC_MCP_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
 npx --yes "github:ChnMig/Vdoc-mcp#$VDOC_MCP_COMMIT"
@@ -25,7 +27,7 @@ MCP config. Replace `<VDOC_MCP_COMMIT_FROM_WORKSPACE_LOCK>` in the shipped
 examples with the resolved 40-character value before use. Do not remove the
 fragment or replace it with a moving branch name. The reviewed lock is
 distributed in the checksummed
-[`v0.1.0-rc.2` Docker Compose workspace bootstrap](https://github.com/ChnMig/Vdoc/releases/tag/v0.1.0-rc.2);
+[Vdoc-site Docker Compose workspace bootstrap](https://vibe-doc.com/en/deployment);
 verify its `.sha256` file before running the workspace initializer.
 
 ## Configuration
