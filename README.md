@@ -21,7 +21,7 @@ MCP config. Replace `<VDOC_MCP_COMMIT_FROM_WORKSPACE_LOCK>` in the shipped
 examples with the resolved 40-character value before use. Do not remove the
 fragment or replace it with a moving branch name. The reviewed lock is
 distributed in the checksummed
-[`v0.1.0-rc.1` workspace bootstrap](https://github.com/ChnMig/Vdoc/releases/tag/v0.1.0-rc.1);
+[`v0.1.0-rc.2` Docker Compose workspace bootstrap](https://github.com/ChnMig/Vdoc/releases/tag/v0.1.0-rc.2);
 verify its `.sha256` file before running the workspace initializer.
 
 ## Configuration
