@@ -4,8 +4,9 @@ export interface VdocMCPConfig {
   requestTimeoutMs: number;
 }
 
-const DEFAULT_TIMEOUT_MS = 30_000;
-const MAX_TIMEOUT_MS = 120_000;
+// Leave room for the backend's maximum 120-second provider call and processing.
+const DEFAULT_TIMEOUT_MS = 180_000;
+const MAX_TIMEOUT_MS = 180_000;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): VdocMCPConfig {
   const endpointUrl = resolveEndpointUrl(env);

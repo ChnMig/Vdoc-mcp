@@ -11,7 +11,7 @@ test("loadConfig uses explicit MCP URL", () => {
 
   assert.equal(config.endpointUrl, "https://vdoc.example.com/api/v1/open/mcp");
   assert.equal(config.token, "vdoc_test_token");
-  assert.equal(config.requestTimeoutMs, 30000);
+  assert.equal(config.requestTimeoutMs, 180000);
 });
 
 test("loadConfig derives MCP URL from base URL", () => {
@@ -42,7 +42,7 @@ test("loadConfig rejects invalid base URL", () => {
 test("loadConfig rejects invalid timeout", () => {
   assert.throws(
     () => loadConfig({ VDOC_BASE_URL: "https://vdoc.example.com", VDOC_MCP_TOKEN: "vdoc_test_token", VDOC_MCP_TIMEOUT_MS: "0" }),
-    /between 1 and 120000/,
+    /between 1 and 180000/,
   );
 });
 
@@ -78,8 +78,19 @@ test("loadConfig rejects timeouts that overflow the supported request window", (
     () => loadConfig({
       VDOC_BASE_URL: "https://vdoc.example.com",
       VDOC_MCP_TOKEN: "vdoc_test_token",
-      VDOC_MCP_TIMEOUT_MS: "120001",
+      VDOC_MCP_TIMEOUT_MS: "180001",
     }),
-    /between 1 and 120000/,
+    /between 1 and 180000/,
   );
+});
+
+test("loadConfig accepts the documented long AI submission timeout", () => {
+  for (const requestTimeoutMs of [30000, 120000, 180000]) {
+    const config = loadConfig({
+      VDOC_BASE_URL: "https://vdoc.example.com",
+      VDOC_MCP_TOKEN: "vdoc_test_token",
+      VDOC_MCP_TIMEOUT_MS: String(requestTimeoutMs),
+    });
+    assert.equal(config.requestTimeoutMs, requestTimeoutMs);
+  }
 });
