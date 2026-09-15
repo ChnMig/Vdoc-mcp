@@ -126,9 +126,14 @@ try {
     `/api/v1/private/projects/${projectId}/documents/${documentId}/drafts/${draftId}/submit`,
     { method: "POST", jwt },
   );
+  const reviewSnapshot = await api(
+    `/api/v1/private/projects/${projectId}/documents/${documentId}/drafts/${draftId}/content/raw`,
+    { jwt },
+  );
+  assert(reviewSnapshot?.draft?.review_revision, "submitted draft must include a review revision");
   const version = await api(
     `/api/v1/private/projects/${projectId}/documents/${documentId}/drafts/${draftId}/approve`,
-    { method: "POST", jwt },
+    { method: "POST", jwt, body: { expected_review_revision: reviewSnapshot.draft.review_revision } },
   );
   const versionId = canonicalId(version?.id, "version id");
 
