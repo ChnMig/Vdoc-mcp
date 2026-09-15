@@ -30,6 +30,8 @@ test("stdio adapter exposes backend tools through MCP", async (t) => {
 
   await client.connect(transport);
   assert.equal(client.getServerVersion().version, packageInfo.version);
+  assert.match(client.getInstructions(), /explicit branch_id/);
+  assert.match(client.getInstructions(), /get_doc_version/);
 
   const tools = await client.listTools();
   assert.deepEqual(tools.tools.map((tool) => tool.name), ["list_projects", "list_document_branches", "list_api_endpoints"]);

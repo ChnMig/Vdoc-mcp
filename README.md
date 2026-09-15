@@ -8,7 +8,7 @@
 
 ## Install
 
-First [download and verify the Compose workspace bootstrap](https://vibe-doc.com/en/deployment). Its [source lock](https://github.com/ChnMig/Vdoc-site/blob/main/workspace/workspace.lock.json) is also browsable in Vdoc-site. Run the installation commands below from the extracted `vdoc-workspace` directory, or set `VDOC_WORKSPACE_LOCK` to its absolute lock path.
+First [download and verify the Compose workspace bootstrap](https://chnmig.github.io/Vdoc-site/en/deployment). Its [source lock](https://github.com/ChnMig/Vdoc-site/blob/main/workspace/workspace.lock.json) is also browsable in Vdoc-site. Run the installation commands below from the extracted `vdoc-workspace` directory, or set `VDOC_WORKSPACE_LOCK` to its absolute lock path.
 
 `@vdoc/mcp` is not published to the npm registry yet. Resolve the adapter
 commit from a reviewed workspace bootstrap lock instead of a moving branch:
@@ -27,7 +27,7 @@ MCP config. Replace `<VDOC_MCP_COMMIT_FROM_WORKSPACE_LOCK>` in the shipped
 examples with the resolved 40-character value before use. Do not remove the
 fragment or replace it with a moving branch name. The reviewed lock is
 distributed in the checksummed
-[Vdoc-site Docker Compose workspace bootstrap](https://vibe-doc.com/en/deployment);
+[Vdoc-site Docker Compose workspace bootstrap](https://chnmig.github.io/Vdoc-site/en/deployment);
 verify its `.sha256` file before running the workspace initializer.
 
 ## Tool discovery
@@ -155,7 +155,7 @@ For a new version, update `package.json` and `package-lock.json` together with `
 
 The adapter's MCP handshake and HTTP user-agent use the package version. This workflow uploads npm-format packages to GitHub Releases; npm registry publication remains separate.
 
-For local packaging, run `npm run release:package -- v0.1.0` with the version in the package manifests. Output stays in the ignored `.artifacts/release/` directory. After downloading a published archive and verifying `SHA256SUMS`, install it with `npm install -g ./vdoc-mcp-<version>.tgz`. Select the release matching the reviewed workspace lock.
+For local packaging, run `npm run release:package -- v0.2.0` with the version in the package manifests. Output stays in the ignored `.artifacts/release/` directory. After downloading a published archive and verifying `SHA256SUMS`, install it with `npm install -g ./vdoc-mcp-<version>.tgz`. Select the release matching the reviewed workspace lock.
 
 ## Development
 

@@ -1,0 +1,11 @@
+# Merge into your personal ~/.codex/config.toml. Replace the source pin from
+# workspace.lock.json and keep the token in private configuration.
+[mcp_servers.vdoc]
+command = "npx"
+args = ["--yes", "github:ChnMig/Vdoc-mcp#<VDOC_MCP_COMMIT_FROM_WORKSPACE_LOCK>"]
+startup_timeout_sec = 60
+tool_timeout_sec = 180
+
+[mcp_servers.vdoc.env]
+VDOC_BASE_URL = "http://127.0.0.1:8080"
+VDOC_MCP_TOKEN = "<YOUR_ACTIVE_VDOC_TOKEN>"
