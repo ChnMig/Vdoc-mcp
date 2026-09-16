@@ -155,7 +155,7 @@ For a new version, update `package.json` and `package-lock.json` together with `
 
 The adapter's MCP handshake and HTTP user-agent use the package version. This workflow uploads npm-format packages to GitHub Releases; npm registry publication remains separate.
 
-For local packaging, run `npm run release:package -- v0.2.1` with the version in the package manifests. Output stays in the ignored `.artifacts/release/` directory. After downloading a published archive and verifying `SHA256SUMS`, install it with `npm install -g ./vdoc-mcp-<version>.tgz`. Select the release matching the reviewed workspace lock.
+For local packaging, run `npm run release:package -- v0.3.0` with the version in the package manifests. Output stays in the ignored `.artifacts/release/` directory. After downloading a published archive and verifying `SHA256SUMS`, install it with `npm install -g ./vdoc-mcp-<version>.tgz`. Select the release matching the reviewed workspace lock.
 
 ## Development
 
