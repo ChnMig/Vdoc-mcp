@@ -19,19 +19,20 @@ export function createVdocMCPServer(config: VdocMCPConfig): Server {
     },
   );
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: await listVdocTools(config),
+  server.setRequestHandler(ListToolsRequestSchema, async (_request, extra) => ({
+    tools: await listVdocTools(config, extra.signal),
   }));
 
-  server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
+  server.setRequestHandler(CallToolRequestSchema, async (request, extra): Promise<CallToolResult> => {
     try {
       const result = await callVdocTool(
         config,
         request.params.name,
         request.params.arguments ?? {},
+        extra.signal,
       );
       return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        content: [{ type: "text", text: result }],
       };
     } catch (error) {
       return {

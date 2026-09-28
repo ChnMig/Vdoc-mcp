@@ -14,6 +14,7 @@ interface JSONRPCSuccess {
   jsonrpc: "2.0";
   id: string;
   result: unknown;
+  resultText: string;
 }
 
 interface JSONRPCFailure {
@@ -48,8 +49,8 @@ export class VdocRPCError extends Error {
   }
 }
 
-export async function listVdocTools(config: VdocMCPConfig): Promise<VdocToolDefinition[]> {
-  const result = await callVdocRPC(config, "tools/list");
+export async function listVdocTools(config: VdocMCPConfig, signal?: AbortSignal): Promise<VdocToolDefinition[]> {
+  const { result } = await callVdocRPC(config, "tools/list", undefined, signal);
   if (!isObject(result) || !Array.isArray(result.tools)) {
     throw new VdocRPCError("Vdoc tools/list returned an invalid result shape.");
   }
@@ -60,20 +61,34 @@ export async function callVdocTool(
   config: VdocMCPConfig,
   name: string,
   args: unknown,
-): Promise<unknown> {
-  return callVdocRPC(config, "tools/call", {
+  signal?: AbortSignal,
+): Promise<string> {
+  const { resultText } = await callVdocRPC(config, "tools/call", {
     name,
     arguments: isObject(args) ? args : {},
-  });
+  }, signal);
+  // Tool results are JSON text in MCP. Keep the original number tokens instead
+  // of round-tripping document facts through JavaScript's floating-point type.
+  return resultText;
 }
 
 async function callVdocRPC(
   config: VdocMCPConfig,
   method: "tools/list" | "tools/call",
   params?: unknown,
-): Promise<unknown> {
+  signal?: AbortSignal,
+): Promise<JSONRPCSuccess> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), config.requestTimeoutMs);
+  let abortCause: "cancelled" | "timeout" | undefined;
+  const abort = (cause: "cancelled" | "timeout") => {
+    if (controller.signal.aborted) return;
+    abortCause = cause;
+    controller.abort();
+  };
+  const onCancel = () => abort("cancelled");
+  signal?.addEventListener("abort", onCancel, { once: true });
+  if (signal?.aborted) onCancel();
+  const timeout = setTimeout(() => abort("timeout"), config.requestTimeoutMs);
   const id = `vdoc-mcp-${randomUUID()}`;
 
   try {
@@ -99,23 +114,28 @@ async function callVdocRPC(
     if ("error" in payload) {
       throw new VdocRPCError(formatRPCErrorMessage(payload.error), payload.error.code, payload.error.data);
     }
-    return payload.result;
+    return payload;
   } catch (error) {
     if (error instanceof VdocRPCError) {
       throw error;
     }
-    if (error instanceof Error && error.name === "AbortError") {
+    if (abortCause === "cancelled") {
+      throw new VdocRPCError("Vdoc MCP request cancelled.");
+    }
+    if (abortCause === "timeout") {
       throw new VdocRPCError(`Vdoc MCP request timed out after ${config.requestTimeoutMs}ms.`);
     }
     throw new VdocRPCError(redactSecrets(error));
   } finally {
     clearTimeout(timeout);
+    signal?.removeEventListener("abort", onCancel);
   }
 }
 
 async function readResponseText(response: Response): Promise<string> {
   const declaredLength = Number(response.headers.get("content-length"));
   if (Number.isFinite(declaredLength) && declaredLength > MAX_RESPONSE_BYTES) {
+    await response.body?.cancel().catch(() => undefined);
     throw new VdocRPCError(`Vdoc MCP response exceeds ${MAX_RESPONSE_BYTES} bytes.`);
   }
   if (response.body === null) {
@@ -185,7 +205,45 @@ function parseResponse(bodyText: string, expectedId: string): JSONRPCResponse {
     };
   }
 
-  return { jsonrpc: "2.0", id: expectedId, result: parsed.result };
+  return { jsonrpc: "2.0", id: expectedId, result: parsed.result, resultText: rawResultText(bodyText) };
+}
+
+// JSON.parse above validates the entire envelope. This non-recursive scan only
+// finds its top-level result span, respecting strings, escapes and nesting.
+// Keep the last occurrence, matching JSON.parse's duplicate-key semantics.
+function rawResultText(json: string): string {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  let keyStart = 0;
+  let key = "";
+  let valueStart = -1;
+  let result = "";
+  for (let index = 0; index < json.length; index += 1) {
+    const char = json[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') {
+        inString = false;
+        if (depth === 1 && valueStart === -1) key = JSON.parse(json.slice(keyStart, index + 1));
+      }
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+      keyStart = index;
+    } else if (char === ":" && depth === 1) {
+      valueStart = index + 1;
+    } else if ((char === "," || char === "}") && depth === 1) {
+      if (key === "result") result = json.slice(valueStart, index).trim();
+      valueStart = -1;
+      key = "";
+    }
+    if (char === "{" || char === "[") depth += 1;
+    else if (char === "}" || char === "]") depth -= 1;
+  }
+  return result;
 }
 
 function toToolDefinition(value: unknown): VdocToolDefinition {

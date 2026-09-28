@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { getEventListeners } from "node:events";
 import { readFileSync } from "node:fs";
 import http from "node:http";
 import test from "node:test";
@@ -35,7 +36,7 @@ test("callVdocTool forwards tools/call arguments to backend", async (t) => {
   t.after(() => server.close());
 
   const result = await callVdocTool(configFor(server), "list_documents", { project_id: "proj_1" });
-  assert.deepEqual(result, [{ id: "doc_1" }]);
+  assert.deepEqual(JSON.parse(result), [{ id: "doc_1" }]);
 });
 
 test("callVdocTool includes backend JSON-RPC error detail", async (t) => {
@@ -106,7 +107,7 @@ test("callVdocTool accepts a supported 5 MiB document response", async (t) => {
   t.after(() => server.close());
 
   const result = await callVdocTool({ ...configFor(server), requestTimeoutMs: 5000 }, "get_latest_schema", {});
-  assert.equal(result.content.length, content.length);
+  assert.equal(JSON.parse(result).content.length, content.length);
 });
 
 test("listVdocTools rejects oversized backend responses", async (t) => {
@@ -119,6 +120,41 @@ test("listVdocTools rejects oversized backend responses", async (t) => {
     () => listVdocTools({ ...configFor(server), requestTimeoutMs: 5000 }),
     /response exceeds 16777216 bytes/,
   );
+});
+
+test("listVdocTools closes an oversized response before the backend finishes sending", async (t) => {
+  for (const declaredLength of [true, false]) {
+    await t.test(declaredLength ? "declared length" : "chunked body", async (t) => {
+      let responseClosed;
+      const closed = new Promise((resolve) => { responseClosed = resolve; });
+      const server = await startServer(async (_request, res) => {
+        res.once("close", responseClosed);
+        if (declaredLength) res.setHeader("content-length", 16 * 1024 * 1024 + 1);
+        res.flushHeaders();
+        res.write(declaredLength ? "x" : "x".repeat(16 * 1024 * 1024 + 1));
+        // Keep the response open so a completed body cannot hide a missing cancellation.
+      });
+      t.after(() => {
+        server.closeAllConnections();
+        server.close();
+      });
+      await assert.rejects(
+        () => listVdocTools({ ...configFor(server), requestTimeoutMs: 5000 }),
+        /response exceeds 16777216 bytes/,
+      );
+      let deadline;
+      try {
+        await Promise.race([
+          closed,
+          new Promise((_, reject) => {
+            deadline = setTimeout(() => reject(new Error("oversized response connection remained open after rejection")), 1000);
+          }),
+        ]);
+      } finally {
+        clearTimeout(deadline);
+      }
+    });
+  }
 });
 
 test("listVdocTools refuses redirects before contacting the target", async (t) => {
@@ -138,6 +174,37 @@ test("listVdocTools refuses redirects before contacting the target", async (t) =
 
   await assert.rejects(() => listVdocTools(configFor(source)), /fetch|redirect/i);
   assert.equal(targetCalls, 0);
+});
+
+test("RPC cancellation and timeout have distinct errors and release signal listeners", async (t) => {
+  let requests = 0;
+  const server = await startServer(async ({ body }, res) => {
+    requests += 1;
+    if (body.params?.name === "complete") {
+      res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: null }));
+    }
+  });
+  t.after(() => {
+    server.closeAllConnections();
+    server.close();
+  });
+  const cancelled = new AbortController();
+  cancelled.abort(new Error("private cancellation reason"));
+  await assert.rejects(
+    () => callVdocTool(configFor(server), "fixture", {}, cancelled.signal),
+    { message: "Vdoc MCP request cancelled." },
+  );
+  assert.equal(requests, 0);
+  assert.equal(getEventListeners(cancelled.signal, "abort").length, 0);
+
+  const active = new AbortController();
+  assert.equal(await callVdocTool(configFor(server), "complete", {}, active.signal), "null");
+  assert.equal(getEventListeners(active.signal, "abort").length, 0);
+  await assert.rejects(
+    () => callVdocTool({ ...configFor(server), requestTimeoutMs: 30 }, "fixture", {}, active.signal),
+    /timed out after 30ms/,
+  );
+  assert.equal(getEventListeners(active.signal, "abort").length, 0);
 });
 
 function configFor(server) {
