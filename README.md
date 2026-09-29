@@ -20,8 +20,6 @@ VDOC_WORKSPACE_LOCK="${VDOC_WORKSPACE_LOCK:-./workspace.lock.json}"
 VDOC_MCP_COMMIT="$(jq -er '.repositories[] | select(.path == "Vdoc-mcp") | .commit' "$VDOC_WORKSPACE_LOCK")"
 printf '%s' "$VDOC_MCP_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
 npx --yes "github:ChnMig/Vdoc-mcp#$VDOC_MCP_COMMIT"
-# Or install the GitHub version globally
-npm install -g "git+https://github.com/ChnMig/Vdoc-mcp.git#$VDOC_MCP_COMMIT"
 ```
 
 For one-off agent usage, prefer the pinned `npx` GitHub source in the agent's
@@ -34,7 +32,27 @@ verify its `.sha256` file before running the workspace initializer.
 
 ## Optional Skill and linked updates
 
-After installing the package globally, link its bundled Skill into your agent:
+Install the prebuilt release selected by the reviewed lock, verify its checksum, then link its bundled Skill. Global Git installs can fail during npm's source preparation with `tsc: command not found`; the release archive already contains the compiled adapter.
+
+```sh
+(
+  set -eu
+  VDOC_WORKSPACE_LOCK="${VDOC_WORKSPACE_LOCK:-./workspace.lock.json}"
+  VDOC_MCP_REF="$(jq -er '.repositories[] | select(.path == "Vdoc-mcp") | .ref' "$VDOC_WORKSPACE_LOCK")"
+  printf '%s' "$VDOC_MCP_REF" | grep -Eq '^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+  VDOC_MCP_VERSION="${VDOC_MCP_REF#refs/tags/v}"
+  VDOC_MCP_PACKAGE_DIR="$(mktemp -d)"
+  trap 'rm -rf -- "$VDOC_MCP_PACKAGE_DIR"' EXIT
+  VDOC_MCP_RELEASE="https://github.com/ChnMig/Vdoc-mcp/releases/download/v$VDOC_MCP_VERSION"
+  curl -fsSL "$VDOC_MCP_RELEASE/vdoc-mcp-$VDOC_MCP_VERSION.tgz" -o "$VDOC_MCP_PACKAGE_DIR/vdoc-mcp-$VDOC_MCP_VERSION.tgz"
+  curl -fsSL "$VDOC_MCP_RELEASE/SHA256SUMS" -o "$VDOC_MCP_PACKAGE_DIR/SHA256SUMS"
+  (cd "$VDOC_MCP_PACKAGE_DIR" && shasum -a 256 -c SHA256SUMS)
+  npm install --global "$VDOC_MCP_PACKAGE_DIR/vdoc-mcp-$VDOC_MCP_VERSION.tgz"
+  vdoc-mcp skill install
+)
+```
+
+To link an already installed package:
 
 ```sh
 vdoc-mcp skill install
@@ -44,7 +62,7 @@ vdoc-mcp skill install --directory "$HOME/.claude/skills/vdoc"
 
 The default directory is `$HOME/.agents/skills/vdoc`. The installer does not need credentials and refuses to replace an existing installation. Preserve local changes and move the previous directory before migrating from Git or Skills CLI. Do not edit the linked package files; keep personal rules separately.
 
-When the global MCP package is replaced at the same npm prefix, the directory link exposes the matching new Skill automatically, without `postinstall` hooks. Current Git installs update by rerunning the global install with the new reviewed commit; verified release archives can also be installed globally. Once this package is published to npm and the user switches to a registry installation, `npm update --global @vdoc/mcp` can update both. No npm registry publication is claimed by this release.
+When the global MCP package is replaced at the same npm prefix, the directory link exposes the matching new Skill automatically, without `postinstall` hooks. To update, repeat the verified archive installation with the release from the newer reviewed lock. Once this package is published to npm and the user switches to a registry installation, `npm update --global @vdoc/mcp` can update both. No npm registry publication is claimed by this release.
 
 Restart the MCP process and reload the agent after updates. Configure the globally installed `vdoc-mcp` command in the client if it should use that installation; an existing `npx` configuration pinned to an older Git commit remains on that commit. Keep the global package installed at the same path; changing Node installations or npm prefixes requires relinking. Do not link a Skill from a temporary `npx` cache.
 
@@ -175,7 +193,7 @@ For a new version, update `package.json` and `package-lock.json` together with `
 
 The adapter's MCP handshake and HTTP user-agent use the package version. This workflow uploads npm-format packages to GitHub Releases; npm registry publication remains separate.
 
-For local packaging, run `npm run release:package -- v0.3.7` with the version in the package manifests. Output stays in the ignored `.artifacts/release/` directory. After downloading a published archive and verifying `SHA256SUMS`, install it with `npm install -g ./vdoc-mcp-<version>.tgz`. Select the release matching the reviewed workspace lock.
+For local packaging, run `npm run release:package -- v0.3.8` with the version in the package manifests. Output stays in the ignored `.artifacts/release/` directory. After downloading a published archive and verifying `SHA256SUMS`, install it with `npm install -g ./vdoc-mcp-<version>.tgz`. Select the release matching the reviewed workspace lock.
 
 ## Development
 
