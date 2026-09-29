@@ -1,6 +1,6 @@
 {
   "name": "@vdoc/skill",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Vdoc agent skill for API contract and Markdown document workflows.",
   "license": "MIT",
   "type": "module",
