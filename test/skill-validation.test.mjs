@@ -4,8 +4,9 @@ import { dirname, join, relative, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-const root = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
-const packageInfo = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+const packageRoot = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
+const root = join(packageRoot, "skills/vdoc");
+const packageInfo = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"));
 const contract = JSON.parse(readFileSync(join(root, "references/mcp-tools.json"), "utf8"));
 const schemas = new Map(contract.tools.map((tool) => [tool.name, tool]));
 const markdownFiles = ["SKILL.md", "README.md", ...["templates", "examples", "references", "evals"].flatMap((dir) =>
@@ -17,7 +18,8 @@ function read(path) {
 }
 
 function isPackaged(path) {
-  return packageInfo.files.some((entry) => path === entry || path.startsWith(`${entry}/`));
+  const packagedPath = `skills/vdoc/${path}`;
+  return packageInfo.files.some((entry) => packagedPath === entry || packagedPath.startsWith(`${entry}/`));
 }
 
 test("tool inventory and argument contract are consistent", () => {

@@ -4,110 +4,54 @@
 
 # Vdoc Skill
 
-Vdoc Skill is the installable agent workflow package for Vdoc. It teaches AI agents when and how to use Vdoc MCP for API contract facts, Markdown document facts, endpoint integration, migration analysis, and draft submission.
+The optional Vdoc Skill teaches agents how to query API contracts and Markdown documents, compare versions, and prepare drafts for human review. Vdoc MCP provides the tools and facts; the Skill does not store data or credentials or call the backend directly. MCP also works without this Skill.
 
-The skill does not store data, compute diffs, or talk to Vdoc directly. Vdoc MCP is the source of truth for tools and facts.
+The Skill is maintained in `Vdoc-mcp/skills/vdoc` and ships inside the same `@vdoc/mcp` package as the adapter. There is one version, test suite, and release. The former Vdoc-skill repository is no longer required.
 
-## Contents
+## Install and update with MCP
 
-```text
-SKILL.md
-references/
-  draft-workflows.md
-  mcp-tools.json
-templates/
-  endpoint-integration.md
-  frontend-change-summary.md
-examples/
-  endpoint-query-example.md
-  compare-versions-example.md
-```
-
-## Install
-
-First [download and verify the Compose workspace bootstrap](https://chnmig.github.io/Vdoc-site/en/deployment). Its [source lock](https://github.com/ChnMig/Vdoc-site/blob/main/workspace/workspace.lock.json) is also browsable in Vdoc-site. Run the installation commands below from the extracted `vdoc-workspace` directory, or set `VDOC_WORKSPACE_LOCK` to its absolute lock path.
-
-Install the exact commit pinned by the workspace release lock into the standard
-agent skill directory, with `SKILL.md` at the `vdoc` skill root:
+First download and verify the [workspace bootstrap](https://chnmig.github.io/Vdoc-site/en/deployment). From its extracted directory, install the MCP commit pinned by its lock, then link the bundled Skill into your agent:
 
 ```sh
-# Personal installation; use .agents/skills/vdoc for repository scope instead.
-VDOC_SKILL_DIR="$HOME/.agents/skills/vdoc"
 VDOC_WORKSPACE_LOCK="${VDOC_WORKSPACE_LOCK:-./workspace.lock.json}"
-VDOC_SKILL_COMMIT="$(jq -er '.repositories[] | select(.path == "Vdoc-skill") | .commit' "$VDOC_WORKSPACE_LOCK")"
-printf '%s' "$VDOC_SKILL_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
-test ! -e "$VDOC_SKILL_DIR"
-mkdir -p "$(dirname -- "$VDOC_SKILL_DIR")"
-git init "$VDOC_SKILL_DIR"
-git -C "$VDOC_SKILL_DIR" remote add origin https://github.com/ChnMig/Vdoc-skill.git
-git -C "$VDOC_SKILL_DIR" fetch --depth 1 origin "$VDOC_SKILL_COMMIT"
-git -C "$VDOC_SKILL_DIR" checkout --detach FETCH_HEAD
-test "$(git -C "$VDOC_SKILL_DIR" rev-parse HEAD)" = "$VDOC_SKILL_COMMIT"
-test -f "$VDOC_SKILL_DIR/SKILL.md"
+VDOC_MCP_COMMIT="$(jq -er '.repositories[] | select(.path == "Vdoc-mcp") | .commit' "$VDOC_WORKSPACE_LOCK")"
+printf '%s' "$VDOC_MCP_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
+npm install --global "git+https://github.com/ChnMig/Vdoc-mcp.git#$VDOC_MCP_COMMIT"
+vdoc-mcp skill install
 ```
 
-The command derives its commit from the external reviewed lock so this
-repository does not make an impossible self-referential claim about its own
-future commit. The reviewed lock is distributed in the checksummed
-[Vdoc-site Docker Compose workspace bootstrap](https://chnmig.github.io/Vdoc-site/en/deployment);
-verify its `.sha256` file before running the workspace initializer. If the
-target already exists, verify its current `HEAD`; upgrade only by fetching and
-checking out the commit from a newer reviewed lock. Do not use an unpinned
-`git pull` for an installed Skill.
-
-The current Skill uses `list_document_branches` and `list_api_endpoints` when the backend exposes them. Upgrade Backend together with Skill for complete ID discovery; older release locks may not include those tools. The skill falls back to exact user-provided IDs instead of guessing.
-
-Pair it with the [Vdoc MCP adapter](https://github.com/ChnMig/Vdoc-mcp); the skill describes the workflow, while MCP provides the tools.
-
-## Local Vdoc Closure Path
-
-For a local Vdoc backend, Admin, MCP adapter, and Skill check that match the workspace docs, run from the workspace root:
+The default target is `$HOME/.agents/skills/vdoc`. For a different agent or project scope, pass its skill directory explicitly:
 
 ```sh
-scripts/vdoc-local-bootstrap.sh
-docker compose --env-file .env up -d --build
-cd Vdoc && go run ./tools/vdoc-demo-seed
+vdoc-mcp skill install --directory "$HOME/.claude/skills/vdoc"
+vdoc-mcp skill install --directory .agents/skills/vdoc
 ```
 
-The demo seed is optional. To verify live backend behavior against the root Compose stack:
+The installer creates a directory link and refuses to overwrite an existing, separately managed Skill. Preserve any local edits and move the old installation before migrating. Do not use both this installer and Skills CLI to manage the same destination.
+
+To update, install the MCP commit from the newer reviewed lock, or install its verified release archive globally at the same npm prefix. The link then exposes the new Skill, including its references and templates, automatically. Reload the agent and restart its MCP process. A change of npm prefix or Node installation requires relinking; `npx` cache directories are unsuitable for a persistent link.
+
+The package is not on the npm registry yet. `npm update --global @vdoc/mcp` becomes applicable only after registry publication and migration to a registry installation. Git-pinned installations continue to require an explicit new commit. No install lifecycle hook writes into agent directories.
+
+## Install only the Skill
+
+Skills CLI can discover this directory in the combined repository:
 
 ```sh
-cd Vdoc
-./scripts/vdoc-e2e.sh live-compose --env-file ../.env --check-only
-./scripts/vdoc-e2e.sh live-compose --env-file ../.env
+npx skills add ChnMig/Vdoc-mcp --skill vdoc -g
 ```
 
-Live E2E resets the selected disposable `VDOC_TEST_POSTGRES_DB`, `vdoc_e2e` by default. It does not reset the application database from `VDOC_POSTGRES_DB`.
+That command follows the repository's default branch. To use a reviewed version instead, pass `https://github.com/ChnMig/Vdoc-mcp/tree/<VDOC_MCP_COMMIT>/skills/vdoc` with the commit from the workspace lock. Skills CLI owns updates for this independent installation; updating the MCP npm package will not replace it. Configure MCP separately before using the workflows.
 
-Use the root release dry-run as the local gate before distributing the skill:
+## Contents and validation
 
-```sh
-scripts/vdoc-release-dry-run.sh --list
-scripts/vdoc-release-dry-run.sh
-```
+- [Workflow instructions](SKILL.md)
+- [Draft workflows](references/draft-workflows.md)
+- [Tool contract](references/mcp-tools.json)
+- [Endpoint integration template](templates/endpoint-integration.md)
+- [Change summary template](templates/frontend-change-summary.md)
+- [Behavior evaluation cases](evals/cases.md)
 
-The dry-run does not publish packages or deploy services.
+From the Vdoc-mcp repository root, run `npm test` for both MCP and Skill validation. `npm run release:package -- vMAJOR.MINOR.PATCH` produces one package containing both. Static checks validate the tool inventory, arguments, links, and package contents; they do not establish model behavior.
 
-## Safety Rules
-
-- Vdoc MCP is the source of truth for API contract facts and Markdown document content.
-- Do not infer endpoint fields, parameters, response properties, enum values, auth schemes, servers, breaking-change claims, or Markdown text.
-- Never print, copy, or log MCP tokens or JWTs.
-- Never expose raw JWTs, MCP tokens, DB passwords, storage secrets, or `Authorization` header values in examples, logs, screenshots, issues, or final output.
-- Direct publish tools are unavailable in v0.1; human Admin/SuperAdmin review publishes versions.
-
-## Automated Releases
-
-For a new version, update `package.json` and `package-lock.json` together with `npm version 0.1.1 --no-git-tag-version` (substitute the intended version), commit the changes, and push the matching `v0.1.1` tag. CI requires the tag to match both manifests, runs the existing checks, and creates a [GitHub Release](https://github.com/ChnMig/Vdoc-skill/releases) containing `vdoc-skill-<version>.tgz` and `SHA256SUMS`. A tag such as `v0.1.1-rc.1` creates a prerelease; ordinary branch pushes and pull requests run checks only. Existing releases are not overwritten.
-
-For local packaging, run `npm run release:package -- v0.3.0` with the version in the manifests. Output stays in the ignored `.artifacts/release/` directory. The workflow uploads the installable package to GitHub Releases; npm registry publication remains separate.
-
-After downloading a release matching the reviewed workspace lock and verifying `SHA256SUMS`, extract its `package/` contents into a new Skill directory with `--strip-components=1`, so `SKILL.md` is directly at the `vdoc` skill root. The archive includes references, templates, examples, and evaluation cases.
-
-## Validate
-
-```sh
-npm test
-```
-
-`npm test` validates packaged references and example arguments. [Behavior evaluation cases](evals/cases.md) cover real agent decisions and should be run in an isolated fixture workspace when evaluating a model; static checks do not establish model behavior.
+Never put MCP tokens, JWTs, database passwords, or storage secrets into Skill files. Configure credentials through the MCP client. Draft publication remains a human review action enforced by the backend.

@@ -1,7 +1,9 @@
-name: MCP CI
+name: MCP and Skill CI
 
 on:
   push:
+    branches: ['**']
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -49,7 +51,7 @@ jobs:
           retention-days: 14
 
   release:
-    name: Publish MCP release
+    name: Publish MCP and Skill release
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: verify
     runs-on: ubuntu-latest

@@ -2,9 +2,11 @@
   <img src="assets/vdoc-logo.png" width="96" height="96" alt="Vdoc logo" />
 </p>
 
-# Vdoc MCP
+# Vdoc MCP and Skill
 
-`@vdoc/mcp` is the installable MCP stdio adapter for Vdoc. It does not implement Vdoc business logic locally. It forwards MCP `tools/list` and `tools/call` requests to a Vdoc backend at `/api/v1/open/mcp`.
+`@vdoc/mcp` contains the installable MCP stdio adapter and its optional [workflow Skill](skills/vdoc/README.md). It does not implement Vdoc business logic locally. It forwards MCP `tools/list` and `tools/call` requests to a Vdoc backend at `/api/v1/open/mcp`.
+
+Since v0.3.7, both are maintained and released in this repository. The Skill lives at `skills/vdoc/`; its original Git history is preserved by a subtree merge, with historical tags under `skill/`. The former Vdoc-skill repository is not required for new installations or releases.
 
 ## Install
 
@@ -29,6 +31,24 @@ fragment or replace it with a moving branch name. The reviewed lock is
 distributed in the checksummed
 [Vdoc-site Docker Compose workspace bootstrap](https://chnmig.github.io/Vdoc-site/en/deployment);
 verify its `.sha256` file before running the workspace initializer.
+
+## Optional Skill and linked updates
+
+After installing the package globally, link its bundled Skill into your agent:
+
+```sh
+vdoc-mcp skill install
+# Or select a different agent/project skill directory
+vdoc-mcp skill install --directory "$HOME/.claude/skills/vdoc"
+```
+
+The default directory is `$HOME/.agents/skills/vdoc`. The installer does not need credentials and refuses to replace an existing installation. Preserve local changes and move the previous directory before migrating from Git or Skills CLI. Do not edit the linked package files; keep personal rules separately.
+
+When the global MCP package is replaced at the same npm prefix, the directory link exposes the matching new Skill automatically, without `postinstall` hooks. Current Git installs update by rerunning the global install with the new reviewed commit; verified release archives can also be installed globally. Once this package is published to npm and the user switches to a registry installation, `npm update --global @vdoc/mcp` can update both. No npm registry publication is claimed by this release.
+
+Restart the MCP process and reload the agent after updates. Configure the globally installed `vdoc-mcp` command in the client if it should use that installation; an existing `npx` configuration pinned to an older Git commit remains on that commit. Keep the global package installed at the same path; changing Node installations or npm prefixes requires relinking. Do not link a Skill from a temporary `npx` cache.
+
+For independent Skill installation through Skills CLI, see the [Skill README](skills/vdoc/README.md). Such installations have their own update lifecycle.
 
 ## Tool discovery
 
@@ -155,7 +175,7 @@ For a new version, update `package.json` and `package-lock.json` together with `
 
 The adapter's MCP handshake and HTTP user-agent use the package version. This workflow uploads npm-format packages to GitHub Releases; npm registry publication remains separate.
 
-For local packaging, run `npm run release:package -- v0.3.6` with the version in the package manifests. Output stays in the ignored `.artifacts/release/` directory. After downloading a published archive and verifying `SHA256SUMS`, install it with `npm install -g ./vdoc-mcp-<version>.tgz`. Select the release matching the reviewed workspace lock.
+For local packaging, run `npm run release:package -- v0.3.7` with the version in the package manifests. Output stays in the ignored `.artifacts/release/` directory. After downloading a published archive and verifying `SHA256SUMS`, install it with `npm install -g ./vdoc-mcp-<version>.tgz`. Select the release matching the reviewed workspace lock.
 
 ## Development
 

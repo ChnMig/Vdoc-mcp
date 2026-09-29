@@ -1,7 +1,7 @@
 {
   "name": "@vdoc/mcp",
-  "version": "0.3.6",
-  "description": "Vdoc MCP stdio adapter for AI agents.",
+  "version": "0.3.7",
+  "description": "Vdoc MCP stdio adapter and companion workflow Skill for AI agents.",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -9,6 +9,7 @@
   },
   "files": [
     "dist",
+    "skills/vdoc",
     "examples",
     "assets",
     "README.md",
