@@ -1,0 +1,24 @@
+{
+  "name": "@vdoc/skill",
+  "version": "0.3.6",
+  "description": "Vdoc agent skill for API contract and Markdown document workflows.",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "SKILL.md",
+    "references",
+    "templates",
+    "examples",
+    "evals",
+    "assets",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "release:package": "bash scripts/package-release.sh",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

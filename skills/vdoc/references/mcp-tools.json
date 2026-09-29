@@ -1,0 +1,291 @@
+{
+  "version": "0.2.0",
+  "tools": [
+    {
+      "name": "list_projects",
+      "scopes_any": [
+        "api:read",
+        "doc:read"
+      ],
+      "required": [],
+      "optional": []
+    },
+    {
+      "name": "list_documents",
+      "scopes_any": [
+        "api:read",
+        "doc:read"
+      ],
+      "required": [
+        "project_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "list_document_branches",
+      "scopes_any": [
+        "api:read",
+        "doc:read"
+      ],
+      "required": [
+        "project_id",
+        "document_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "list_api_endpoints",
+      "scopes_any": [
+        "api:read"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "version_id"
+      ],
+      "optional": [
+        "method",
+        "path"
+      ]
+    },
+    {
+      "name": "list_api_versions",
+      "scopes_any": [
+        "api:read"
+      ],
+      "required": [
+        "project_id",
+        "document_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "list_doc_versions",
+      "scopes_any": [
+        "doc:read"
+      ],
+      "required": [
+        "project_id",
+        "document_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "get_latest_schema",
+      "scopes_any": [
+        "api:read"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "branch_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "get_endpoint_detail",
+      "scopes_any": [
+        "api:read"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "version_id",
+        "endpoint_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "compare_api_versions",
+      "scopes_any": [
+        "api:read"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "from_version_id",
+        "to_version_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "get_change_summary",
+      "scopes_any": [
+        "api:read"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "diff_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "create_api_version_draft",
+      "scopes_any": [
+        "api:draft"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "branch_id",
+        "version_name",
+        "schema_content"
+      ],
+      "optional": [
+        "changelog",
+        "source_git_commit_id"
+      ]
+    },
+    {
+      "name": "update_api_version_draft",
+      "scopes_any": [
+        "api:draft"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "draft_id",
+        "schema_content",
+        "expected_revision"
+      ],
+      "optional": [
+        "version_name",
+        "changelog",
+        "source_git_commit_id"
+      ]
+    },
+    {
+      "name": "submit_api_version_draft",
+      "scopes_any": [
+        "api:draft"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "draft_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "get_api_version_draft",
+      "scopes_any": [
+        "api:read"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "draft_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "get_latest_doc",
+      "scopes_any": [
+        "doc:read"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "branch_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "compare_doc_versions",
+      "scopes_any": [
+        "doc:read"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "from_version_id",
+        "to_version_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "create_doc_draft",
+      "scopes_any": [
+        "doc:draft"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "branch_id",
+        "version_name",
+        "markdown_content"
+      ],
+      "optional": [
+        "changelog",
+        "source_git_commit_id"
+      ]
+    },
+    {
+      "name": "update_doc_draft",
+      "scopes_any": [
+        "doc:draft"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "draft_id",
+        "markdown_content",
+        "expected_revision"
+      ],
+      "optional": [
+        "version_name",
+        "changelog",
+        "source_git_commit_id"
+      ]
+    },
+    {
+      "name": "submit_doc_draft",
+      "scopes_any": [
+        "doc:draft"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "draft_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "get_doc_draft",
+      "scopes_any": [
+        "doc:read"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "draft_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "get_schema_version",
+      "scopes_any": [
+        "api:read"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "version_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "get_doc_version",
+      "scopes_any": [
+        "doc:read"
+      ],
+      "required": [
+        "project_id",
+        "document_id",
+        "version_id"
+      ],
+      "optional": []
+    }
+  ]
+}
