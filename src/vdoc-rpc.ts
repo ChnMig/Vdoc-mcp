@@ -25,10 +25,21 @@ interface JSONRPCFailure {
 
 type JSONRPCResponse = JSONRPCSuccess | JSONRPCFailure;
 
-// A valid OpenAPI upload may be 5 MiB before the JSON-RPC envelope and JSON
-// escaping are added. Keep a bounded streaming limit with enough headroom for
-// that supported payload instead of rejecting it at the adapter boundary.
-const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
+// Backend raw/stable content is bounded to 10 MiB by the default storage limit.
+// Go's JSON encoder can turn each source byte into six bytes (for example, "<"
+// becomes "\\u003c"). Generated normalized/diff snapshots are already JSON
+// encoded and bounded to 10 MiB by that same limit, so their serialized size
+// already includes escaping. Endpoint details and change summaries can
+// project their fields twice. Budget for both plus the envelope/metadata while
+// retaining a finite streaming limit; do not round-trip the result to shrink it.
+const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+const MAX_JSON_STRING_EXPANSION = 6;
+const MAX_GENERATED_SNAPSHOT_BYTES = 10 * 1024 * 1024;
+const MAX_SNAPSHOT_PROJECTIONS = 2;
+const MAX_RESPONSE_OVERHEAD_BYTES = 1024 * 1024;
+const MAX_RESPONSE_BYTES = MAX_DOCUMENT_BYTES * MAX_JSON_STRING_EXPANSION
+  + MAX_GENERATED_SNAPSHOT_BYTES * MAX_SNAPSHOT_PROJECTIONS
+  + MAX_RESPONSE_OVERHEAD_BYTES;
 const MAX_HTTP_ERROR_CHARACTERS = 4096;
 const VDOC_STDIO_USER_AGENT = `vdoc-mcp/${packageVersion} (stdio)`;
 

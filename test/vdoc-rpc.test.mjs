@@ -6,6 +6,9 @@ import test from "node:test";
 
 import { callVdocTool, listVdocTools } from "../dist/vdoc-rpc.js";
 const packageInfo = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+// 10 MiB source * worst-case Go JSON escaping, two 10 MiB generated snapshot
+// projections, and 1 MiB for the envelope/metadata.
+const maxResponseBytes = (10 * 6 + 10 * 2 + 1) * 1024 * 1024;
 
 test("listVdocTools forwards tools/list to backend", async (t) => {
   const server = await startServer(async ({ body, headers }, res) => {
@@ -100,7 +103,7 @@ test("listVdocTools rejects missing JSON-RPC result", async (t) => {
 });
 
 test("callVdocTool accepts a supported 5 MiB document response", async (t) => {
-  const content = "x".repeat(5 * 1024 * 1024 + 1);
+  const content = "x".repeat(5 * 1024 * 1024);
   const server = await startServer(async ({ body }, res) => {
     res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { content } }));
   });
@@ -110,15 +113,56 @@ test("callVdocTool accepts a supported 5 MiB document response", async (t) => {
   assert.equal(JSON.parse(result).content.length, content.length);
 });
 
+test("callVdocTool accepts 6x-escaped 5 MiB content with a generated diff and preserves number tokens", async (t) => {
+  // Match Go encoding/json's HTML escaping, rather than JSON.stringify, which
+  // leaves '<' unchanged and did not exercise the original response-limit bug.
+  const escapedContent = "\\u003c".repeat(5 * 1024 * 1024);
+  const diffItem = `{"old_value":9007199254740993,"new_value":1e400,"message":"${"x".repeat(10 * 1024 * 1024 - 256)}"}`;
+  const expected = `{"content":{"content":"${escapedContent}"},"draft":{"diff_preview":{"items":[${diffItem}]}}}`;
+  const server = await startServer(async ({ body }, res) => {
+    res.end(`{"jsonrpc":"2.0","id":${JSON.stringify(body.id)},"result":${expected}}`);
+  });
+  t.after(() => server.close());
+
+  const result = await callVdocTool({ ...configFor(server), requestTimeoutMs: 5000 }, "get_doc_draft", {});
+  assert.equal(result, expected);
+  assert.equal(JSON.parse(result).content.content.length, 5 * 1024 * 1024);
+  assert.match(result, /"old_value":9007199254740993,"new_value":1e400/);
+});
+
+test("callVdocTool accepts two generated snapshot projections", async (t) => {
+  const item = { message: "x".repeat(10 * 1024 * 1024 - 256) };
+  const server = await startServer(async ({ body }, res) => {
+    res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { must_handle: [item], breaking: [item] } }));
+  });
+  t.after(() => server.close());
+
+  const result = await callVdocTool({ ...configFor(server), requestTimeoutMs: 5000 }, "get_change_summary", {});
+  const summary = JSON.parse(result);
+  assert.equal(summary.must_handle[0].message, item.message);
+  assert.equal(summary.breaking[0].message, item.message);
+});
+
+test("callVdocTool accepts 6x-escaped content at the backend default 10 MiB storage boundary", async (t) => {
+  const contentBytes = 10 * 1024 * 1024;
+  const server = await startServer(async ({ body }, res) => {
+    res.end(`{"jsonrpc":"2.0","id":${JSON.stringify(body.id)},"result":{"content":"${"\\u003c".repeat(contentBytes)}"}}`);
+  });
+  t.after(() => server.close());
+
+  const result = await callVdocTool({ ...configFor(server), requestTimeoutMs: 5000 }, "get_latest_doc", {});
+  assert.equal(JSON.parse(result).content.length, contentBytes);
+});
+
 test("listVdocTools rejects oversized backend responses", async (t) => {
   const server = await startServer(async (_request, res) => {
-    res.end("x".repeat(16 * 1024 * 1024 + 1));
+    res.end("x".repeat(maxResponseBytes + 1));
   });
   t.after(() => server.close());
 
   await assert.rejects(
     () => listVdocTools({ ...configFor(server), requestTimeoutMs: 5000 }),
-    /response exceeds 16777216 bytes/,
+    new RegExp(`response exceeds ${maxResponseBytes} bytes`),
   );
 });
 
@@ -129,9 +173,9 @@ test("listVdocTools closes an oversized response before the backend finishes sen
       const closed = new Promise((resolve) => { responseClosed = resolve; });
       const server = await startServer(async (_request, res) => {
         res.once("close", responseClosed);
-        if (declaredLength) res.setHeader("content-length", 16 * 1024 * 1024 + 1);
+        if (declaredLength) res.setHeader("content-length", maxResponseBytes + 1);
         res.flushHeaders();
-        res.write(declaredLength ? "x" : "x".repeat(16 * 1024 * 1024 + 1));
+        res.write(declaredLength ? "x" : "x".repeat(maxResponseBytes + 1));
         // Keep the response open so a completed body cannot hide a missing cancellation.
       });
       t.after(() => {
@@ -140,7 +184,7 @@ test("listVdocTools closes an oversized response before the backend finishes sen
       });
       await assert.rejects(
         () => listVdocTools({ ...configFor(server), requestTimeoutMs: 5000 }),
-        /response exceeds 16777216 bytes/,
+        new RegExp(`response exceeds ${maxResponseBytes} bytes`),
       );
       let deadline;
       try {
