@@ -116,11 +116,11 @@ async function callVdocRPC(
       signal: controller.signal,
     });
 
-    const bodyText = await readResponseText(response);
     if (!response.ok) {
-      throw new VdocRPCError(`Vdoc MCP HTTP ${response.status}: ${httpErrorPreview(bodyText)}`);
+      throw new VdocRPCError(`Vdoc MCP HTTP ${response.status}: ${await readHTTPErrorPreview(response)}`);
     }
 
+    const bodyText = await readResponseText(response);
     const payload = parseResponse(bodyText, id);
     if ("error" in payload) {
       throw new VdocRPCError(formatRPCErrorMessage(payload.error), payload.error.code, payload.error.data);
@@ -172,11 +172,26 @@ async function readResponseText(response: Response): Promise<string> {
   }
 }
 
-function httpErrorPreview(body: string): string {
-  if (body.length <= MAX_HTTP_ERROR_CHARACTERS) {
-    return body;
+async function readHTTPErrorPreview(response: Response): Promise<string> {
+  if (response.body === null) return "";
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let preview = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      preview += decoder.decode(value, { stream: !done });
+      if (preview.length >= MAX_HTTP_ERROR_CHARACTERS) {
+        // The status is already known. Do not buffer a large error page or wait
+        // for its sender to finish before returning the bounded diagnostic.
+        await reader.cancel().catch(() => undefined);
+        return `${preview.slice(0, MAX_HTTP_ERROR_CHARACTERS)}…[truncated]`;
+      }
+      if (done) return preview;
+    }
+  } finally {
+    reader.releaseLock();
   }
-  return `${body.slice(0, MAX_HTTP_ERROR_CHARACTERS)}…[truncated]`;
 }
 
 function parseResponse(bodyText: string, expectedId: string): JSONRPCResponse {

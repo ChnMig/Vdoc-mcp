@@ -27,3 +27,12 @@ test("redactSecrets removes JSON bearer authorization values", () => {
     '{"authorization":"[redacted]"}',
   );
 });
+
+test("redactSecrets handles non-JSON error values without a second failure", () => {
+  assert.equal(redactSecrets(undefined), "undefined");
+  assert.equal(redactSecrets(Symbol("vdoc_secret_123")), "Symbol(vdoc_[redacted])");
+  assert.equal(redactSecrets(1n), "1");
+  assert.equal(typeof redactSecrets(() => {}), "string");
+  const unprintable = { toJSON() { throw new Error("cannot serialize"); }, toString() { throw new Error("cannot stringify"); } };
+  assert.equal(redactSecrets(unprintable), "[unprintable error]");
+});

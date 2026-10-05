@@ -16,10 +16,13 @@ First [download and verify the Compose workspace bootstrap](https://chnmig.githu
 commit from a reviewed workspace bootstrap lock instead of a moving branch:
 
 ```sh
-VDOC_WORKSPACE_LOCK="${VDOC_WORKSPACE_LOCK:-./workspace.lock.json}"
-VDOC_MCP_COMMIT="$(jq -er '.repositories[] | select(.path == "Vdoc-mcp") | .commit' "$VDOC_WORKSPACE_LOCK")"
-printf '%s' "$VDOC_MCP_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
-npx --yes "github:ChnMig/Vdoc-mcp#$VDOC_MCP_COMMIT"
+(
+  set -eu
+  VDOC_WORKSPACE_LOCK="${VDOC_WORKSPACE_LOCK:-./workspace.lock.json}"
+  VDOC_MCP_COMMIT="$(jq -er '.repositories[] | select(.path == "Vdoc-mcp") | .commit' "$VDOC_WORKSPACE_LOCK")"
+  printf '%s' "$VDOC_MCP_COMMIT" | grep -Eq '^[0-9a-f]{40}$'
+  npx --yes "github:ChnMig/Vdoc-mcp#$VDOC_MCP_COMMIT"
+)
 ```
 
 For one-off agent usage, prefer the pinned `npx` GitHub source in the agent's

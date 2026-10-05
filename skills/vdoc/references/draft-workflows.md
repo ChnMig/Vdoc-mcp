@@ -5,13 +5,15 @@ Read this reference when creating, updating, inspecting, or submitting a draft. 
 | User intent | Action |
 | --- | --- |
 | Create a proposed draft | Resolve the project, document and branch, then create once. Stop at the returned draft state. |
-| Edit an existing draft | Read it by draft_id, preserve its branch and unchanged metadata, then update only if the content changes. |
+| Edit an existing draft | Read it by draft_id, preserve its branch and unchanged metadata, then update when the requested content or metadata changes. |
 | Submit for review | Submit the selected draft when this is part of the user's request. No extra confirmation is needed for an already authorized submission. |
 | Inspect status | Use get_api_version_draft or get_doc_draft; do not mutate. |
 
 Use list_document_branches to resolve the requested branch name even when the document has no published versions. Existing published versions are not a prerequisite for a first draft. Creating projects/documents/branches is an Admin action outside the MCP draft tools.
 
 Draft updates require content and expected_revision from the draft snapshot used for editing, but do not accept branch_id. version_name, changelog, and source_git_commit_id are optional update fields; omit unchanged metadata. Never use a version name or branch name as an ID. Keep the revision returned by create, get, or update; send it as expected_revision on the next update. If FAILED_PRECONDITION is returned, reread and reconcile the current draft with local edits before retrying. Never substitute the latest revision and resend stale content blindly.
+
+For a metadata-only edit, send the unchanged body and expected_revision from the same draft read, together with only the requested metadata fields. Renaming a draft or updating its changelog does not require changing its content.
 
 get_doc_draft returns Markdown content. In v0.2, get_api_version_draft returns metadata and revision at the top level and raw OpenAPI in content.content; content.hash matches raw_content_hash. Read the body and revision together before editing, and pass that revision as expected_revision. Do not treat get_latest_schema as the body of an unpublished draft. Older backends without draft content need an authorized local source file or an upgrade.
 

@@ -15,8 +15,14 @@ function stringify(value: unknown): string {
     return value;
   }
   try {
-    return JSON.stringify(value);
+    const serialized = JSON.stringify(value);
+    if (typeof serialized === "string") return serialized;
   } catch {
+    // Errors may be BigInts, circular objects, or values with a throwing toJSON.
+  }
+  try {
     return String(value);
+  } catch {
+    return "[unprintable error]";
   }
 }

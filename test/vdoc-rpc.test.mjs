@@ -75,6 +75,43 @@ test("callVdocTool redacts HTTP error bodies", async (t) => {
   );
 });
 
+for (const bodyLength of [4096, 5000]) {
+  test(`callVdocTool closes HTTP error streams at ${bodyLength} characters before the backend finishes`, async (t) => {
+    let responseClosed;
+    const closed = new Promise(resolve => { responseClosed = resolve; });
+    const server = await startServer(async (_request, res) => {
+      res.once("close", responseClosed);
+      res.statusCode = 503;
+      const authLine = "Authorization: Bearer abc.def.ghi\n";
+      res.write(authLine + "x".repeat(bodyLength - authLine.length));
+      // Error status is already known; do not wait for this response to end.
+    });
+    t.after(() => {
+      server.closeAllConnections();
+      server.close();
+    });
+
+    await assert.rejects(() => callVdocTool(configFor(server), "list_projects", {}), error => {
+      assert.match(error.message, /^Vdoc MCP HTTP 503: Authorization: \[redacted\]/);
+      assert.match(error.message, /\[truncated\]$/);
+      assert.doesNotMatch(error.message, /abc\.def\.ghi/);
+      assert.ok(error.message.length < 4200);
+      return true;
+    });
+    let timeout;
+    try {
+      await Promise.race([
+        closed,
+        new Promise((_, reject) => {
+          timeout = setTimeout(() => reject(new Error("HTTP error response remained open")), 1000);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timeout);
+    }
+  });
+}
+
 test("listVdocTools rejects malformed JSON", async (t) => {
   const server = await startServer(async (_request, res) => {
     res.end("not json");
