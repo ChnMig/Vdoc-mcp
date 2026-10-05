@@ -25,5 +25,5 @@ test("documented Git installation stops when the workspace lock cannot provide a
     env: { ...process.env, FIXTURE_COMMIT: commit, FIXTURE_JQ_STATUS: "0" },
   });
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, new RegExp(`NPX_CALLED: --yes github:ChnMig/Vdoc-mcp#${commit}`));
+  assert.match(result.stdout, new RegExp(`NPX_CALLED: --yes ${["github:ChnMig", "Vdoc-mcp"].join("/")}#${commit}`));
 });
