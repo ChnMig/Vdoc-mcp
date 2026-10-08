@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { VdocMCPConfig } from "./config.js";
-import { redactSecrets } from "./sanitize.js";
+import { redactRPCErrorData, redactSecrets } from "./sanitize.js";
 import { packageVersion } from "./version.js";
 
 export interface VdocToolDefinition {
@@ -50,12 +50,16 @@ interface JSONRPCErrorPayload {
 }
 
 export class VdocRPCError extends Error {
+  readonly data?: unknown;
+
   constructor(
     message: string,
     readonly code?: number,
-    readonly data?: unknown,
+    data?: unknown,
+    configuredToken = "",
   ) {
-    super(redactSecrets(message));
+    super(redactSecrets(message, configuredToken));
+    this.data = redactRPCErrorData(data, configuredToken);
     this.name = "VdocRPCError";
   }
 }
@@ -117,13 +121,13 @@ async function callVdocRPC(
     });
 
     if (!response.ok) {
-      throw new VdocRPCError(`Vdoc MCP HTTP ${response.status}: ${await readHTTPErrorPreview(response)}`);
+      throw new VdocRPCError(`Vdoc MCP HTTP ${response.status}: ${await readHTTPErrorPreview(response)}`, undefined, undefined, config.token);
     }
 
     const bodyText = await readResponseText(response);
-    const payload = parseResponse(bodyText, id);
+    const payload = parseResponse(bodyText, id, config.token);
     if ("error" in payload) {
-      throw new VdocRPCError(formatRPCErrorMessage(payload.error), payload.error.code, payload.error.data);
+      throw new VdocRPCError(formatRPCErrorMessage(payload.error), payload.error.code, payload.error.data, config.token);
     }
     return payload;
   } catch (error) {
@@ -136,7 +140,7 @@ async function callVdocRPC(
     if (abortCause === "timeout") {
       throw new VdocRPCError(`Vdoc MCP request timed out after ${config.requestTimeoutMs}ms.`);
     }
-    throw new VdocRPCError(redactSecrets(error));
+    throw new VdocRPCError(redactSecrets(error, config.token));
   } finally {
     clearTimeout(timeout);
     signal?.removeEventListener("abort", onCancel);
@@ -194,12 +198,12 @@ async function readHTTPErrorPreview(response: Response): Promise<string> {
   }
 }
 
-function parseResponse(bodyText: string, expectedId: string): JSONRPCResponse {
+function parseResponse(bodyText: string, expectedId: string, configuredToken: string): JSONRPCResponse {
   let parsed: unknown;
   try {
     parsed = JSON.parse(bodyText);
   } catch (error) {
-    throw new VdocRPCError(`Vdoc MCP returned invalid JSON: ${redactSecrets(error)}`);
+    throw new VdocRPCError(`Vdoc MCP returned invalid JSON: ${redactSecrets(error, configuredToken)}`);
   }
 
   if (!isObject(parsed) || parsed.jsonrpc !== "2.0") {
