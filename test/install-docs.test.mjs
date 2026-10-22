@@ -4,7 +4,12 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
-const pinnedInstall = readme.match(/```sh\s*([\s\S]*?VDOC_MCP_COMMIT[\s\S]*?)```/)[1];
+const shellBlocks = [...readme.matchAll(/^```sh[ \t]*\r?\n([\s\S]*?)^```[ \t]*\r?$/gm)]
+  .map((match) => match[1]);
+const pinnedBlocks = shellBlocks.filter((block) => block.includes("VDOC_MCP_COMMIT"));
+assert.equal(pinnedBlocks.length, 1, "README must contain one independently fenced Git installation example");
+const [pinnedInstall] = pinnedBlocks;
+assert.doesNotMatch(pinnedInstall, /```/, "Git installation test must not execute Markdown or adjacent code fences");
 
 test("documented Git installation stops when the workspace lock cannot provide an exact commit", () => {
   const stubs = `
