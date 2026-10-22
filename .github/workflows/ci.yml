@@ -72,7 +72,9 @@ jobs:
 
       - name: Verify checksums
         working-directory: release
-        run: sha256sum --check SHA256SUMS
+        run: |
+          sha256sum --check SHA256SUMS
+          sha256sum --check install-channel.mjs.sha256
 
       - name: Create GitHub Release
         env:

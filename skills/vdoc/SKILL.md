@@ -20,6 +20,8 @@ Use Vdoc MCP for the contract facts needed by the user's task. The host agent ca
 
 Use the host's exposed MCP tools. The adapter handles JSON-RPC; consult the host's tool discovery if a required capability is missing. The deployed backend's tool schemas take precedence over these examples.
 
+When the host exposes separate `vdoc_release` and `vdoc_beta` servers, select the user's intended environment first and keep every discovery, read and draft operation on that same server. If the environment is ambiguous, resolve it before calling tools. Do not switch to another environment when a tool, document or connection is unavailable. A beta test workflow uses the beta backend connection and the beta project's bundled Skill.
+
 1. Resolve project_id with list_projects, then document_id with list_documents. Match the requested document name, relative_path, and document_type; do not take the first ambiguous result.
 2. Use list_document_branches to map the requested branch name to branch_id. It also works before a document's first publication. Prefer an explicitly requested branch; use a returned default only when the user gave no branch and report that choice. Ask when no unambiguous target exists.
 3. For published content, use list_api_versions for OpenAPI or list_doc_versions for Markdown. Select by returned branch_id and version_name, then pass the returned version ID. Do not substitute names for IDs or silently choose the newest version across branches.

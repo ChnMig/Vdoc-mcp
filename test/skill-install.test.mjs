@@ -66,7 +66,7 @@ test("the actual npm archive contains one complete Skill and the executable inst
     encoding: "utf8",
   }));
   const paths = packed[0].files.map((file) => file.path);
-  for (const path of ["dist/index.js", "dist/skill-install.js", "skills/vdoc/SKILL.md", "skills/vdoc/references/mcp-tools.json", "skills/vdoc/templates/endpoint-integration.md"]) {
+  for (const path of ["dist/index.js", "dist/skill-install.js", "scripts/install-channel.mjs", "skills/vdoc/SKILL.md", "skills/vdoc/references/mcp-tools.json", "skills/vdoc/templates/endpoint-integration.md"]) {
     assert.ok(paths.includes(path), `missing packaged file: ${path}`);
   }
   assert.deepEqual(paths.filter((path) => path.endsWith("SKILL.md")), ["skills/vdoc/SKILL.md"]);

@@ -8,7 +8,55 @@
 
 Since v0.3.7, both are maintained and released in this repository. The Skill lives at `skills/vdoc/`; its original Git history is preserved by a subtree merge, with historical tags under `skill/`. The former Vdoc-skill repository is not required for new installations or releases.
 
-## Install
+## Channel installs: release or beta
+
+Use channel installations when a stable environment should follow stable updates and a test environment should keep following beta updates. The MCP adapter and bundled Skill always come from the same package. `@vdoc/mcp` is distributed through GitHub Releases; it is not published to the npm registry yet.
+
+| Channel | Selected published GitHub Release | Default installation prefix |
+|---|---|---|
+| `release` | Highest `vMAJOR.MINOR.PATCH`, not marked prerelease | `$HOME/.local/share/vdoc/mcp/release` |
+| `beta` | Highest `vMAJOR.MINOR.PATCH-beta.N`, marked prerelease | `$HOME/.local/share/vdoc/mcp/beta` |
+
+The standalone installer requires Node.js 20+ and npm. Download it from a reviewed release **containing the installer assets**, verify its separate checksum, and choose a channel. Replace the tag below with that exact release tag; historical releases made before the channel installer was introduced do not contain these assets.
+
+```sh
+(
+  set -eu
+  VDOC_MCP_INSTALLER_TAG="<REVIEWED_RELEASE_TAG_CONTAINING_INSTALLER>"
+  VDOC_MCP_INSTALLER_DIR="$(mktemp -d)"
+  trap 'rm -rf -- "$VDOC_MCP_INSTALLER_DIR"' EXIT
+  VDOC_MCP_INSTALLER_RELEASE="https://github.com/ChnMig/Vdoc-mcp/releases/download/$VDOC_MCP_INSTALLER_TAG"
+  curl -fsSL "$VDOC_MCP_INSTALLER_RELEASE/install-channel.mjs" -o "$VDOC_MCP_INSTALLER_DIR/install-channel.mjs"
+  curl -fsSL "$VDOC_MCP_INSTALLER_RELEASE/install-channel.mjs.sha256" -o "$VDOC_MCP_INSTALLER_DIR/install-channel.mjs.sha256"
+  (cd "$VDOC_MCP_INSTALLER_DIR" && shasum -a 256 -c install-channel.mjs.sha256)
+  node "$VDOC_MCP_INSTALLER_DIR/install-channel.mjs" --channel beta
+)
+```
+
+Use `--channel release` for stable installations. The installer lists GitHub Releases, selects the highest valid SemVer in that channel, downloads that exact tag's prebuilt `.tgz` and `SHA256SUMS`, verifies SHA-256, then runs `npm install --prefix ... --no-save --ignore-scripts --global=false`. It ignores drafts, unrecognized tags and other prerelease formats. An empty channel, API failure or invalid checksum stops installation; beta never falls back to stable or a branch.
+
+Each channel owns its dedicated prefix. `--prefix /absolute/dedicated/path` selects a custom location; existing unrelated files and a prefix already owned by the other channel are refused. No global MCP package, agent configuration or Skill directory is changed. The output provides the **absolute MCP command** to paste into your agent configuration.
+
+Configure stable as `vdoc_release` with its stable backend URL/token, and beta as `vdoc_beta` with its test backend URL/token. See [Claude channel configuration](examples/channels.claude_desktop_config.json) and [Codex channel configuration](examples/codex-channels.toml); replace the absolute command placeholders with installer output. If both servers are enabled, select the environment explicitly when using tools. For test workflows, a separate agent profile or project with only `vdoc_beta` enabled keeps the environment selection clear.
+
+Link each package's Skill into the corresponding agent or project directory. For example, from the **beta test project**:
+
+```sh
+"$HOME/.local/share/vdoc/mcp/beta/node_modules/.bin/vdoc-mcp" skill install --directory .agents/skills/vdoc
+```
+
+Use the release binary from a different stable project to link its own `.agents/skills/vdoc`. Both bundled Skills have the name `vdoc`; install them into separate project or agent scopes. The link follows package updates at that prefix, and the installer refuses to overwrite an existing Skill. Keep personal edits separately.
+
+For subsequent updates, run the installer bundled inside the installed channel package:
+
+```sh
+node "$HOME/.local/share/vdoc/mcp/beta/node_modules/@vdoc/mcp/scripts/install-channel.mjs" --channel beta
+node "$HOME/.local/share/vdoc/mcp/release/node_modules/@vdoc/mcp/scripts/install-channel.mjs" --channel release
+```
+
+For custom prefixes, keep passing the same `--prefix`. Each command updates only its selected channel and its linked Skill. Updates occur when you run the command; there is no background updater. Restart the MCP process and reload the agent afterward. Publishing beta does not update the stable package or the stable Compose environment.
+
+## Install a pinned workspace version
 
 First [download and verify the Compose workspace bootstrap](https://chnmig.github.io/Vdoc-site/en/deployment). Its [source lock](https://github.com/ChnMig/Vdoc-site/blob/main/workspace/workspace.lock.json) is also browsable in Vdoc-site. Run the installation commands below from the extracted `vdoc-workspace` directory, or set `VDOC_WORKSPACE_LOCK` to its absolute lock path.
 
@@ -192,7 +240,11 @@ Vdoc v0.1 exposes read tools for projects, documents, API versions, endpoint det
 
 ## Automated Releases
 
-For a new version, update `package.json` and `package-lock.json` together with `npm version 0.1.1 --no-git-tag-version` (substitute the intended version), commit the changes, and push the matching `v0.1.1` tag. CI requires the tag to match both manifests, runs tests and packaging checks, then creates a [GitHub Release](https://github.com/ChnMig/Vdoc-mcp/releases) containing `vdoc-mcp-<version>.tgz` and `SHA256SUMS`. A tag such as `v0.1.1-rc.1` creates a prerelease; ordinary branch pushes and pull requests run checks only. Existing releases are not overwritten.
+For a new version, update `package.json` and `package-lock.json` together with `npm version 0.1.1 --no-git-tag-version` (substitute the intended version), commit the changes, and push the matching `v0.1.1` tag. CI requires the tag to match both manifests, runs tests and packaging checks, then creates a [GitHub Release](https://github.com/ChnMig/Vdoc-mcp/releases) containing `vdoc-mcp-<version>.tgz`, `SHA256SUMS`, `install-channel.mjs` and `install-channel.mjs.sha256`. `SHA256SUMS` continues to cover the package archive only; the standalone installer has its own checksum for initial setup. Ordinary branch pushes and pull requests run checks only. Existing releases are not overwritten.
+
+Use `vMAJOR.MINOR.PATCH-beta.N` for channel beta, for example `v0.4.0-beta.1`: CI creates a prerelease, and only beta installations select it. Promote a validated version by building and tagging `vMAJOR.MINOR.PATCH`, such as `v0.4.0`: the release channel then selects that stable package. Other prerelease tags, such as `-rc.1`, remain supported by packaging but are not selected by either channel installer. Package versions must match their tags; do not copy a beta archive into a stable release.
+
+For the first channel rollout, publish and verify the beta prerelease first, then publish the stable release from the same validated implementation with only the package version changed. Each tag needs its own matching manifest versions and four release assets. Before publishing a beta installation guide, verify that a `-beta.N` prerelease exists and pin its installer download to a reviewed release containing the installer assets. A stable release alone does not initialize the beta channel. Historical releases without the installer assets are rejected before npm runs; the installed package is also checked for its bundled channel updater.
 
 The adapter's MCP handshake and HTTP user-agent use the package version. This workflow uploads npm-format packages to GitHub Releases; npm registry publication remains separate.
 

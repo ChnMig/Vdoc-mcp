@@ -1,0 +1,20 @@
+# Replace command placeholders with the installer's absolute output paths.
+# Store tokens in private configuration. Enable only the intended environment
+# in a dedicated stable or beta agent profile when possible.
+[mcp_servers.vdoc_release]
+command = "<ABSOLUTE_RELEASE_MCP_PATH_FROM_INSTALLER>"
+startup_timeout_sec = 60
+tool_timeout_sec = 180
+
+[mcp_servers.vdoc_release.env]
+VDOC_BASE_URL = "https://your-stable-vdoc.example.com"
+VDOC_MCP_TOKEN = "<YOUR_RELEASE_VDOC_TOKEN>"
+
+[mcp_servers.vdoc_beta]
+command = "<ABSOLUTE_BETA_MCP_PATH_FROM_INSTALLER>"
+startup_timeout_sec = 60
+tool_timeout_sec = 180
+
+[mcp_servers.vdoc_beta.env]
+VDOC_BASE_URL = "http://127.0.0.1:18080"
+VDOC_MCP_TOKEN = "<YOUR_BETA_VDOC_TOKEN>"

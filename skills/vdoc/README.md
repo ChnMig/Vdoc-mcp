@@ -10,6 +10,17 @@ The Skill is maintained in `Vdoc-mcp/skills/vdoc` and ships inside the same `@vd
 
 ## Install and update with MCP
 
+For environments that follow an update channel, use the [release/beta channel installer](https://github.com/ChnMig/Vdoc-mcp#channel-installs-release-or-beta). It keeps prebuilt MCP + Skill packages in separate persistent prefixes. Use the command printed for that channel and link its Skill into the corresponding project or agent scope:
+
+```sh
+# Run from the beta test project, separate from your stable project.
+"$HOME/.local/share/vdoc/mcp/beta/node_modules/.bin/vdoc-mcp" skill install --directory .agents/skills/vdoc
+```
+
+Repeat the beta installer command to update only beta; use the release installer for stable updates. Each link exposes the matching package's new Skill automatically. Both Skills are named `vdoc`, so keep beta and stable links in separate scopes. Do not install a beta Skill over the stable Skill or point beta MCP at the stable backend. Reload the agent and restart MCP after updating. No registry publication or background update is implied.
+
+For an explicitly pinned workspace version:
+
 First download and verify the [workspace bootstrap](https://chnmig.github.io/Vdoc-site/en/deployment). Follow the [combined package installation](https://github.com/ChnMig/Vdoc-mcp#optional-skill-and-linked-updates) to download the release selected by its lock, check `SHA256SUMS`, install the prebuilt archive globally, and run `vdoc-mcp skill install`. The archive avoids npm's global Git preparation failure (`tsc: command not found`).
 
 The default target is `$HOME/.agents/skills/vdoc`. For a different agent or project scope, pass its skill directory explicitly:

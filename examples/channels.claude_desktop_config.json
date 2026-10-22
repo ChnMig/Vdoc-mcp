@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "vdoc_release": {
+      "command": "<ABSOLUTE_RELEASE_MCP_PATH_FROM_INSTALLER>",
+      "env": {
+        "VDOC_BASE_URL": "https://your-stable-vdoc.example.com",
+        "VDOC_MCP_TOKEN": "REPLACE_WITH_LOCAL_RELEASE_TOKEN"
+      }
+    },
+    "vdoc_beta": {
+      "command": "<ABSOLUTE_BETA_MCP_PATH_FROM_INSTALLER>",
+      "env": {
+        "VDOC_BASE_URL": "http://127.0.0.1:18080",
+        "VDOC_MCP_TOKEN": "REPLACE_WITH_LOCAL_BETA_TOKEN"
+      }
+    }
+  }
+}

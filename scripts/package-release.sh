@@ -28,8 +28,13 @@ npm pack --pack-destination "$stage"
   cd "$stage"
   shasum -a 256 ./*.tgz | sed 's|  ./|  |' >SHA256SUMS
 )
+cp "$ROOT_DIR/scripts/install-channel.mjs" "$stage/install-channel.mjs"
+(
+  cd "$stage"
+  shasum -a 256 install-channel.mjs >install-channel.mjs.sha256
+)
 output="$ROOT_DIR/.artifacts/release"
 mkdir -p "$output"
 rm -f -- "$output"/*.tgz "$output/SHA256SUMS"
-cp "$stage/"*.tgz "$stage/SHA256SUMS" "$output/"
+cp "$stage/"*.tgz "$stage/SHA256SUMS" "$stage/install-channel.mjs" "$stage/install-channel.mjs.sha256" "$output/"
 printf 'Package release prepared: %s\n' "$output"
