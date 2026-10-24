@@ -32,6 +32,13 @@ test("tool inventory and argument contract are consistent", () => {
     assert.match(tool.name, /^[a-z][a-z0-9_]+$/);
     assert.ok(!tool.name.startsWith("publish_") && tool.name !== "approve_draft", "MCP cannot publish");
     assert.equal(new Set([...tool.required, ...tool.optional]).size, tool.required.length + tool.optional.length);
+    for (const alternative of tool.required_any_of ?? []) {
+      assert.ok(alternative.length > 0, `${tool.name}: empty required alternative`);
+      assert.equal(new Set(alternative).size, alternative.length, `${tool.name}: duplicate alternative fields`);
+      for (const key of alternative) {
+        assert.ok([...tool.required, ...tool.optional].includes(key), `${tool.name}: unknown alternative field ${key}`);
+      }
+    }
     assert.ok(tool.scopes_any.length > 0);
   }
 });
@@ -52,6 +59,10 @@ test("protocol examples use supported tools and valid argument fields", () => {
       for (const key of schema.required) {
         assert.equal(typeof args[key], "string", `${path}: missing ${key}`);
         assert.ok(args[key].trim(), `${path}: empty ${key}`);
+      }
+      if (schema.required_any_of?.length) {
+        assert.ok(schema.required_any_of.some((keys) => keys.every((key) => typeof args[key] === "string")),
+          `${path}: missing required alternative ${JSON.stringify(schema.required_any_of)}`);
       }
       for (const [key, value] of Object.entries(args)) {
         assert.ok([...schema.required, ...schema.optional].includes(key), `${path}: unsupported ${key}`);

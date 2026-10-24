@@ -15,7 +15,7 @@ Draft updates require content and expected_revision from the draft snapshot used
 
 For a metadata-only edit, send the unchanged body and expected_revision from the same draft read, together with only the requested metadata fields. Renaming a draft or updating its changelog does not require changing its content.
 
-get_doc_draft returns Markdown content. In v0.2, get_api_version_draft returns metadata and revision at the top level and raw OpenAPI in content.content; content.hash matches raw_content_hash. Read the body and revision together before editing, and pass that revision as expected_revision. Do not treat get_latest_schema as the body of an unpublished draft. Older backends without draft content need an authorized local source file or an upgrade.
+get_doc_draft returns Markdown or TXT content. TXT stays literal plain text, including its line endings. In v0.2, get_api_version_draft returns metadata and revision at the top level and raw OpenAPI in content.content; content.hash matches raw_content_hash. Read the body and revision together before editing, and pass that revision as expected_revision. Do not treat get_latest_schema as the body of an unpublished draft. Older backends without draft content need an authorized local source file or an upgrade.
 
 If a write times out, its outcome is unknown. When draft_id is known, read it before retrying an update or submission. An uncertain create without a returned ID cannot be recovered by a draft list tool in the current API: stop duplicate creates and report that the user should inspect Admin. Do not claim success from an attempted call.
 
@@ -87,9 +87,11 @@ Submit a draft for review:
 }
 ```
 
-## Markdown Examples
+## Markdown and TXT Examples
 
-Get latest Markdown content:
+Use `content` for document draft bodies. Older clients may still send `markdown_content`; at least one body field is required, and if both are present they must be identical. For a TXT document, the body is plain text and may be empty; do not convert it to Markdown. Resolve the existing document type before writing.
+
+Get latest Markdown or TXT content:
 
 ```json
 {
@@ -107,7 +109,7 @@ Get latest Markdown content:
 }
 ```
 
-Compare two Markdown versions:
+Compare two Markdown or TXT versions:
 
 ```json
 {
@@ -141,7 +143,7 @@ Compare two Markdown versions:
 }
 ```
 
-Choose the payload matching the requested Markdown action; these are separate operations, not a mandatory sequence:
+Choose the payload matching the requested Markdown/TXT action; these are separate operations, not a mandatory sequence:
 
 ```json
 {
@@ -157,7 +159,7 @@ Choose the payload matching the requested Markdown action; these are separate op
       "version_name": "1.2.0",
       "changelog": "Describe the Markdown update for human review.",
       "source_git_commit_id": "commit_placeholder",
-      "markdown_content": "# Example\n\nUpdated Markdown content.\n"
+      "content": "# Example\n\nUpdated Markdown content.\n"
     }
   }
 }
@@ -194,7 +196,7 @@ Choose the payload matching the requested Markdown action; these are separate op
       "version_name": "1.2.0",
       "changelog": "Refine the Markdown draft after review.",
       "source_git_commit_id": "commit_placeholder",
-      "markdown_content": "# Example\n\nRefined Markdown content.\n"
+      "content": "# Example\n\nRefined Markdown content.\n"
     }
   }
 }

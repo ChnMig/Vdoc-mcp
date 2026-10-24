@@ -213,12 +213,21 @@
         "project_id",
         "document_id",
         "branch_id",
-        "version_name",
-        "markdown_content"
+        "version_name"
       ],
       "optional": [
         "changelog",
-        "source_git_commit_id"
+        "source_git_commit_id",
+        "content",
+        "markdown_content"
+      ],
+      "required_any_of": [
+        [
+          "content"
+        ],
+        [
+          "markdown_content"
+        ]
       ]
     },
     {
@@ -230,13 +239,22 @@
         "project_id",
         "document_id",
         "draft_id",
-        "markdown_content",
         "expected_revision"
       ],
       "optional": [
         "version_name",
         "changelog",
-        "source_git_commit_id"
+        "source_git_commit_id",
+        "content",
+        "markdown_content"
+      ],
+      "required_any_of": [
+        [
+          "content"
+        ],
+        [
+          "markdown_content"
+        ]
       ]
     },
     {
