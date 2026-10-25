@@ -11,6 +11,8 @@ Read this reference when creating, updating, inspecting, or submitting a draft. 
 
 Use list_document_branches to resolve the requested branch name even when the document has no published versions. Existing published versions are not a prerequisite for a first draft. Creating projects/documents/branches is an Admin action outside the MCP draft tools.
 
+Use the actual returned names and IDs, including custom branch names. `dev`, `test`, and `prod` are the default environment branches; `feature/` is an optional naming convention. Do not add a prefix, rename a branch, or substitute a default for the user's selected branch.
+
 Draft updates require content and expected_revision from the draft snapshot used for editing, but do not accept branch_id. version_name, changelog, and source_git_commit_id are optional update fields; omit unchanged metadata. Never use a version name or branch name as an ID. Keep the revision returned by create, get, or update; send it as expected_revision on the next update. If FAILED_PRECONDITION is returned, reread and reconcile the current draft with local edits before retrying. Never substitute the latest revision and resend stale content blindly.
 
 For a metadata-only edit, send the unchanged body and expected_revision from the same draft read, together with only the requested metadata fields. Renaming a draft or updating its changelog does not require changing its content.

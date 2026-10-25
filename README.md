@@ -123,6 +123,8 @@ For independent Skill installation through Skills CLI, see the [Skill README](sk
 
 Tool definitions are loaded from the deployed backend; the adapter has no hardcoded tool inventory. Updated backends expose `list_document_branches` to resolve a branch before its first publication, and `list_api_endpoints` to resolve endpoint IDs by version, method and exact path. Pair the updated backend with Vdoc Skill. Older release locks may still expose the earlier tool set.
 
+Document branches may have custom names such as `main` or `release/2026`; `feature/` is optional. Resolve the requested name with `list_document_branches` and pass its returned ID. The MCP tool arguments and permissions are unchanged; branch management and public-share creation remain Admin actions.
+
 ## Configuration
 
 Set these environment variables in your agent MCP configuration:
