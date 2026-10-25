@@ -17,7 +17,7 @@ Use channel installations when a stable environment should follow stable updates
 | `release` | Highest `vMAJOR.MINOR.PATCH`, not marked prerelease | `$HOME/.local/share/vdoc/mcp/release` |
 | `beta` | Highest `vMAJOR.MINOR.PATCH-beta.N`, marked prerelease | `$HOME/.local/share/vdoc/mcp/beta` |
 
-The standalone installer requires Node.js 20+ and npm. Download it from a reviewed release **containing the installer assets**, verify its separate checksum, and choose a channel. Replace the tag below with that exact release tag; historical releases made before the channel installer was introduced do not contain these assets.
+The standalone installer requires Node.js 20+ and npm; use a supported Node.js release, preferably Node.js 26.12.1 or newer. Download it from a reviewed release **containing the installer assets**, verify its separate checksum, and choose a channel. Replace the tag below with that exact release tag; historical releases made before the channel installer was introduced do not contain these assets.
 
 ```sh
 (
