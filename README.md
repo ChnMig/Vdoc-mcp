@@ -117,7 +117,7 @@ When the global MCP package is replaced at the same npm prefix, the directory li
 
 Restart the MCP process and reload the agent after updates. Configure the globally installed `vdoc-mcp` command in the client if it should use that installation; an existing `npx` configuration pinned to an older Git commit remains on that commit. Keep the global package installed at the same path; changing Node installations or npm prefixes requires relinking. Do not link a Skill from a temporary `npx` cache.
 
-For independent Skill installation through Skills CLI, see the [Skill README](skills/vdoc/README.md). Such installations have their own update lifecycle.
+For new installations and updates, prefer Vdoc's [channel installer](#channel-installs-release-or-beta) for the combined MCP + Skill package. Keep the same channel, prefix, and MCP connection settings when updating. Installing the package and linking the Skill require no backend URL or token; configure the MCP connection separately when you are ready to use its tools. Restart MCP and reload the agent after an update.
 
 ## Tool discovery
 

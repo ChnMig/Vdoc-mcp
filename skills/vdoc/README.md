@@ -30,21 +30,15 @@ vdoc-mcp skill install --directory "$HOME/.claude/skills/vdoc"
 vdoc-mcp skill install --directory .agents/skills/vdoc
 ```
 
-The installer creates a directory link and refuses to overwrite an existing, separately managed Skill. Preserve any local edits and move the old installation before migrating. Do not use both this installer and Skills CLI to manage the same destination.
+The installer creates a directory link and refuses to overwrite an existing, separately managed Skill. Preserve any local edits and move the old installation before migrating. Do not let multiple installers manage the same destination.
 
 To update, install the verified MCP release archive selected by the newer reviewed lock globally at the same npm prefix. The link then exposes the new Skill, including its references and templates, automatically. Reload the agent and restart its MCP process. A change of npm prefix or Node installation requires relinking; `npx` cache directories are unsuitable for a persistent link.
 
 The package is not on the npm registry yet. `npm update --global @vdoc/mcp` becomes applicable only after registry publication and migration to a registry installation. Git-pinned installations continue to require an explicit new commit. No install lifecycle hook writes into agent directories.
 
-## Install only the Skill
+## Install before connecting MCP
 
-Skills CLI can discover this directory in the combined repository:
-
-```sh
-npx skills add ChnMig/Vdoc-mcp --skill vdoc -g
-```
-
-That command follows the repository's default branch. To use a reviewed version instead, pass `https://github.com/ChnMig/Vdoc-mcp/tree/<VDOC_MCP_COMMIT>/skills/vdoc` with the commit from the workspace lock. Skills CLI owns updates for this independent installation; updating the MCP npm package will not replace it. Configure MCP separately before using the workflows.
+Use Vdoc's channel installer above to install or update the combined MCP + Skill package. Package installation and Skill linking need no backend URL or token. Preserve existing MCP client settings; configure the selected environment's connection separately before using its tools. For updates, reuse the same channel and prefix, restart MCP, and reload the agent.
 
 ## Contents and validation
 
