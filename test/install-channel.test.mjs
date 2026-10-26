@@ -5,7 +5,7 @@ import { chmod, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { chooseRelease, installChannel, parseArgs } from "../scripts/install-channel.mjs";
+import { chooseRelease, defaultNpmInstall, installChannel, parseArgs } from "../scripts/install-channel.mjs";
 
 const repository = "ChnMig/Vdoc-mcp";
 const releasesURL = `https://api.github.com/repos/${repository}/releases?per_page=100&page=1`;
@@ -387,6 +387,74 @@ test("asset redirects refuse untrusted or insecure targets and accept the GitHub
   assert.ok(calls.includes(target));
   assert.equal(npm.calls.length, 1);
   assert.deepEqual(npm.calls[0].bytes, releaseBytes(selected));
+});
+
+test("the Windows npm launcher uses Node and preserves every installation argument without a shell", async () => {
+  const nodePath = "C:\\Program Files\\nodejs\\node.exe";
+  const npmCli = "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js";
+  const archive = "D:\\Downloads & docs\\vdoc^(test)%PATH%!.tgz";
+  const prefix = "D:\\Vdoc & Test\\beta %USERPROFILE%!";
+  const inspected = [];
+  const calls = [];
+  await defaultNpmInstall(archive, prefix, {
+    platform: "win32", nodePath, searchPath: "D:\\Other npm",
+    fileStat: async path => {
+      inspected.push(path);
+      return { isFile: () => path === npmCli };
+    },
+    run: async (...args) => calls.push(args),
+  });
+  assert.deepEqual(inspected, [npmCli], "the current Node distribution takes precedence over PATH");
+  assert.deepEqual(calls, [[nodePath, [
+    npmCli, "install", "--prefix", prefix, "--no-save", "--ignore-scripts", "--global=false",
+    "--package-lock=false", "--no-audit", "--no-fund", archive,
+  ], { maxBuffer: 4 * 1024 * 1024, shell: false }]]);
+});
+
+test("the Windows npm launcher finds an npm CLI on PATH after missing or non-file candidates", async () => {
+  for (const npmCli of [
+    "D:\\Npm tools\\node_modules\\npm\\bin\\npm-cli.js",
+    "D:\\Npm tools\\npm-cli.js",
+  ]) {
+    const inspected = [];
+    const calls = [];
+    await defaultNpmInstall("archive.tgz", "prefix", {
+      platform: "win32", nodePath: "C:\\Node\\node.exe", searchPath: 'relative;"D:\\Npm tools"',
+      fileStat: async path => {
+        inspected.push(path);
+        if (path === "C:\\Node\\node_modules\\npm\\bin\\npm-cli.js") return { isFile: () => false };
+        if (path === npmCli) return { isFile: () => true };
+        throw Object.assign(new Error("missing fixture"), { code: "ENOENT" });
+      },
+      run: async (...args) => calls.push(args),
+    });
+    assert.equal(calls[0][0], "C:\\Node\\node.exe");
+    assert.equal(calls[0][1][0], npmCli);
+    assert.ok(!inspected.some(path => path.startsWith("relative")), "relative PATH entries are not executable candidates");
+  }
+});
+
+test("the Windows npm launcher fails clearly without starting a command when npm is missing", async () => {
+  let calls = 0;
+  await assert.rejects(defaultNpmInstall("archive.tgz", "prefix", {
+    platform: "win32", nodePath: "C:\\Node\\node.exe", searchPath: "",
+    fileStat: async () => { throw Object.assign(new Error("missing fixture"), { code: "ENOENT" }); },
+    run: async () => { calls += 1; },
+  }), /Cannot find npm-cli\.js.*Install npm/);
+  assert.equal(calls, 0);
+});
+
+test("the Unix npm launcher continues to use npm from PATH without inspecting Windows locations", async () => {
+  const calls = [];
+  await defaultNpmInstall("archive.tgz", "/tmp/local prefix", {
+    platform: "darwin",
+    fileStat: async () => { assert.fail("Unix installations must use the existing npm launcher"); },
+    run: async (...args) => calls.push(args),
+  });
+  assert.deepEqual(calls, [["npm", [
+    "install", "--prefix", "/tmp/local prefix", "--no-save", "--ignore-scripts", "--global=false",
+    "--package-lock=false", "--no-audit", "--no-fund", "archive.tgz",
+  ], { maxBuffer: 4 * 1024 * 1024, shell: false }]]);
 });
 
 test("the real npm launcher supplies a local prefix and overrides global npm settings", { skip: process.platform === "win32" }, async (t) => {

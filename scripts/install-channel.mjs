@@ -4,7 +4,7 @@ import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { lstat, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
-import { isAbsolute, join, parse, relative, resolve } from "node:path";
+import { isAbsolute, join, parse, relative, resolve, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
@@ -179,11 +179,44 @@ async function inspectPrefix(prefix, channel, installing = false) {
   }
 }
 
-export async function defaultNpmInstall(archive, prefix) {
-  await execFileAsync(process.platform === "win32" ? "npm.cmd" : "npm", [
+export async function defaultNpmInstall(archive, prefix, {
+  platform = process.platform,
+  nodePath = process.execPath,
+  searchPath = Object.entries(process.env).find(([key]) => key.toLowerCase() === "path")?.[1] ?? "",
+  fileStat = stat,
+  run = execFileAsync,
+} = {}) {
+  const args = [
     "install", "--prefix", prefix, "--no-save", "--ignore-scripts", "--global=false",
     "--package-lock=false", "--no-audit", "--no-fund", archive,
-  ], { maxBuffer: 4 * 1024 * 1024 });
+  ];
+  let command = "npm";
+  if (platform === "win32") {
+    // Windows cannot execFile an npm.cmd shim. Run npm's JavaScript entry with
+    // this Node executable so paths stay separate arguments without a shell.
+    const directories = [win32.dirname(nodePath), ...searchPath.split(";")]
+      .map(directory => directory.trim().replace(/^"(.*)"$/, "$1"))
+      .filter(directory => win32.isAbsolute(directory));
+    const candidates = [...new Set(directories.flatMap(directory => [
+      win32.join(directory, "node_modules", "npm", "bin", "npm-cli.js"),
+      win32.join(directory, "npm-cli.js"),
+    ]))];
+    let npmCli;
+    for (const candidate of candidates) {
+      const file = await fileStat(candidate).catch(error => {
+        if (error.code === "ENOENT" || error.code === "ENOTDIR") return undefined;
+        throw error;
+      });
+      if (file?.isFile()) {
+        npmCli = candidate;
+        break;
+      }
+    }
+    if (!npmCli) throw new Error("Cannot find npm-cli.js next to Node.js or on PATH. Install npm with this Node.js distribution and retry.");
+    command = nodePath;
+    args.unshift(npmCli);
+  }
+  await run(command, args, { maxBuffer: 4 * 1024 * 1024, shell: false });
 }
 
 export async function installChannel({ channel = "release", prefix, homeDirectory = homedir(), fetchImpl = globalThis.fetch, npmInstall = defaultNpmInstall, log = console.log } = {}) {
