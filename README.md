@@ -39,6 +39,8 @@ Each channel owns its dedicated prefix. `--prefix /absolute/dedicated/path` sele
 
 Configure stable as `vdoc_release` with its stable backend URL/token, and beta as `vdoc_beta` with its test backend URL/token. See [Claude channel configuration](examples/channels.claude_desktop_config.json) and [Codex channel configuration](examples/codex-channels.toml); replace the absolute command placeholders with installer output. If both servers are enabled, select the environment explicitly when using tools. For test workflows, a separate agent profile or project with only `vdoc_beta` enabled keeps the environment selection clear.
 
+For **Claude Code**, merge the same `mcpServers` JSON into the top level of personal `~/.claude.json` (user scope), using the installer's absolute command and the corresponding backend URL/token. Preserve other servers, restart Claude Code, and inspect `/mcp`. Do not store tokens in the shared project `.mcp.json`. See the [official MCP guide](https://code.claude.com/docs/en/mcp-quickstart).
+
 Link each package's Skill into the corresponding agent or project directory. For example, from the **beta test project**:
 
 ```sh
