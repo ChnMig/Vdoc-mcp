@@ -4,7 +4,7 @@
 
 # Vdoc Skill
 
-The optional Vdoc Skill teaches agents how to query API contracts and Markdown documents, compare versions, and prepare drafts for human review. Vdoc MCP provides the tools and facts; the Skill does not store data or credentials or call the backend directly. MCP also works without this Skill.
+The optional Vdoc Skill teaches agents how to read exact OpenAPI/Markdown/TXT commits, compare immutable revisions, atomically commit changes, analyze them and propose human review. The server generates commit identities and release versions. Vdoc MCP provides the tools and facts; the Skill does not store data or credentials or call the backend directly. MCP also works without this Skill.
 
 The Skill is maintained in `Vdoc-mcp/skills/vdoc` and ships inside the same `@vdoc/mcp` package as the adapter. There is one version, test suite, and release. The former Vdoc-skill repository is no longer required.
 
@@ -43,7 +43,8 @@ Use Vdoc's channel installer above to install or update the combined MCP + Skill
 ## Contents and validation
 
 - [Workflow instructions](SKILL.md)
-- [Draft workflows](references/draft-workflows.md)
+- [Commit workflows](references/commit-workflows.md)
+- [Legacy draft compatibility](references/draft-workflows.md)
 - [Tool contract](references/mcp-tools.json)
 - [Endpoint integration template](templates/endpoint-integration.md)
 - [Change summary template](templates/frontend-change-summary.md)

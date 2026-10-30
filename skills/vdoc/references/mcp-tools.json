@@ -304,6 +304,289 @@
         "version_id"
       ],
       "optional": []
+    },
+    {
+      "name": "resolve_ref",
+      "scopes_any": [
+        "api:read",
+        "doc:read"
+      ],
+      "required": [
+        "project_id"
+      ],
+      "optional": [
+        "branch_id",
+        "commit_id",
+        "release_id"
+      ],
+      "required_any_of": [
+        [
+          "branch_id"
+        ],
+        [
+          "commit_id"
+        ],
+        [
+          "release_id"
+        ]
+      ]
+    },
+    {
+      "name": "list_branches",
+      "scopes_any": [
+        "api:read",
+        "doc:read"
+      ],
+      "required": [
+        "project_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "create_branch",
+      "scopes_any": [
+        "api:draft",
+        "doc:draft"
+      ],
+      "required": [
+        "project_id",
+        "name",
+        "from_commit_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "list_commits",
+      "scopes_any": [
+        "api:read",
+        "doc:read"
+      ],
+      "required": [
+        "project_id",
+        "branch_id"
+      ],
+      "optional": [
+        "document_id",
+        "cursor"
+      ]
+    },
+    {
+      "name": "get_commit",
+      "scopes_any": [
+        "api:read",
+        "doc:read"
+      ],
+      "required": [
+        "project_id",
+        "commit_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "get_document_at_commit",
+      "scopes_any": [
+        "api:read",
+        "doc:read"
+      ],
+      "required": [
+        "project_id",
+        "commit_id",
+        "document_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "commit_changes",
+      "scopes_any": [
+        "api:draft",
+        "doc:draft"
+      ],
+      "required": [
+        "project_id",
+        "branch_id",
+        "expected_head_commit_id",
+        "expected_generation",
+        "idempotency_key",
+        "changes"
+      ],
+      "optional": [
+        "message"
+      ],
+      "argument_schemas": {
+        "expected_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "changes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 500,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operation"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "upsert",
+                  "delete"
+                ]
+              },
+              "document_id": {
+                "type": "string"
+              },
+              "relative_path": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "document_type": {
+                "type": "integer",
+                "enum": [
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "content": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "oneOf": [
+              {
+                "properties": {
+                  "operation": {
+                    "const": "upsert"
+                  }
+                },
+                "required": [
+                  "relative_path",
+                  "name",
+                  "document_type",
+                  "content"
+                ]
+              },
+              {
+                "properties": {
+                  "operation": {
+                    "const": "delete"
+                  }
+                },
+                "required": [
+                  "document_id"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "compare_commits",
+      "scopes_any": [
+        "api:read",
+        "doc:read"
+      ],
+      "required": [
+        "project_id",
+        "from_commit_id",
+        "to_commit_id"
+      ],
+      "optional": [
+        "document_id"
+      ]
+    },
+    {
+      "name": "list_merge_requests",
+      "scopes_any": [
+        "api:read",
+        "doc:read"
+      ],
+      "required": [
+        "project_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "create_merge_request",
+      "scopes_any": [
+        "api:draft",
+        "doc:draft"
+      ],
+      "required": [
+        "project_id",
+        "source_branch_id",
+        "target_branch_id"
+      ],
+      "optional": [
+        "title"
+      ]
+    },
+    {
+      "name": "list_releases",
+      "scopes_any": [
+        "api:read",
+        "doc:read"
+      ],
+      "required": [
+        "project_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "get_release",
+      "scopes_any": [
+        "api:read",
+        "doc:read"
+      ],
+      "required": [
+        "project_id",
+        "release_id"
+      ],
+      "optional": []
+    },
+    {
+      "name": "analyze_changes",
+      "scopes_any": [
+        "api:read",
+        "doc:read"
+      ],
+      "required": [
+        "project_id",
+        "to_commit_id"
+      ],
+      "optional": [
+        "from_commit_id",
+        "document_id",
+        "message",
+        "language"
+      ]
+    },
+    {
+      "name": "list_repository_events",
+      "scopes_any": [
+        "api:read",
+        "doc:read"
+      ],
+      "required": [
+        "project_id"
+      ],
+      "optional": [
+        "after"
+      ],
+      "argument_schemas": {
+        "after": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     }
   ]
 }

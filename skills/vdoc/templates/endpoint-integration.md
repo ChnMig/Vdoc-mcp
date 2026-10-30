@@ -1,10 +1,11 @@
 # Endpoint Integration Template
 
-Use this template only after calling `get_endpoint_detail`. Do not generate endpoint integration code, request functions, or client types until Vdoc MCP returns the endpoint detail.
+Use this template after reading the complete OpenAPI document with `get_document_at_commit`, or exact legacy endpoint detail with `get_endpoint_detail`. Generate code only from that selected immutable source.
 
 ## MCP Requirement
 
-- Required call: `get_endpoint_detail`
+- Current call: `get_document_at_commit` with `project_id`, `commit_id`, `document_id`; use the exact returned OpenAPI definitions.
+- Legacy endpoint call: `get_endpoint_detail`
 - Required arguments: `project_id`, `document_id`, `version_id`, `endpoint_id`
 - Resolve the endpoint ID first with `list_api_endpoints`; its optional `method` and `path` filters match the selected version's operation, with an exact OpenAPI path template.
 - Source of truth: the returned endpoint method, path, operationId, parameters, request body, responses, security, servers, required fields, and enum values
@@ -47,6 +48,6 @@ Use this template only after calling `get_endpoint_detail`. Do not generate endp
 ## Final Response Shape
 
 - Contract summary: method, path, operationId, security, and servers.
-- Source: document ID, branch ID/name, published version ID/name.
+- Source: project/document ID, historical path, branch/ref, full commit ID and publication state. For legacy sources, cite the exact published version ID/name instead; do not substitute it for a commit ID.
 - Generated types or request snippet, if requested.
 - Assumptions limited to values explicitly absent from Vdoc MCP and clearly labeled as not returned.

@@ -1,15 +1,17 @@
 # Frontend Change Summary Template
 
-Use this template after calling `compare_api_versions` and, when helpful, `get_change_summary`. Do not fill contract facts from memory or source code alone.
+Use this template after `compare_commits` and its returned OpenAPI semantic evidence. Exact legacy versions may use `compare_api_versions` and optional `get_change_summary`. Do not fill contract facts from memory or source code alone.
 
 ## Source
 
 - Project: `{{project_id_or_name}}`
 - Document: `{{document_id_or_name}}`
 - Branches: `{{from_branch_id_or_name}}` → `{{to_branch_id_or_name}}`
-- From version: `{{from_version_id_or_name}}`
-- To version: `{{to_version_id_or_name}}`
-- MCP calls used: `compare_api_versions` `{{diff_id}}`, optional `get_change_summary`
+- From immutable commit: `{{from_commit_id}}`
+- To immutable commit: `{{to_commit_id}}`
+- Verified release/publication state, if known: `{{release_id_or_unpublished}}`
+- MCP calls used: `compare_commits` `{{comparison_id}}`; cite exact legacy version IDs separately when using legacy tools.
+- Evidence limits: `{{files_filtered_and_semantic_status}}`
 
 ## Must Handle / Breaking Changes
 
@@ -44,8 +46,8 @@ Checklist:
 
 - First address items marked `must_handle`; assess other breaking changes against the consumer's actual usage.
 - Then decide whether optional/non-breaking changes should be adopted for product value.
-- If Vdoc MCP did not return enough endpoint detail for code changes, call `get_endpoint_detail` for the affected endpoint before generating code.
+- If Vdoc MCP did not return enough endpoint detail for code changes, read the complete exact OpenAPI commit (or `get_endpoint_detail` for a legacy version) before generating code.
 
-## v0.1 Boundary
+## Execution boundary
 
-Vdoc MCP supplies contract facts and draft operations. The host agent may apply local changes when the user requests implementation; report the files changed and relevant verification. MCP itself cannot publish a version or edit the consumer repository.
+Vdoc MCP supplies exact document facts, immutable commits and merge proposals. The host agent may apply local changes when the user requests implementation; report the files changed and relevant verification. MCP itself cannot publish a version or edit the consumer repository.

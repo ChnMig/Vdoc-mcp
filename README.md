@@ -240,7 +240,7 @@ More examples are in `examples/`.
 
 The backend is the source of truth for tool definitions. The adapter calls Vdoc `tools/list` at runtime, so tool schemas stay aligned with the deployed backend.
 
-Vdoc v0.1 exposes read tools for projects, documents, API versions, endpoint detail, API diffs, Markdown docs, and draft tools for OpenAPI/Markdown draft submission. Direct publish tools are not exposed in v0.1; publication remains a human Admin/SuperAdmin review action.
+The current MCP workflow uses immutable project commits: discover a branch, pin its head/generation, read exact content, compare commits, atomically append changes with an idempotency key, analyze exact revisions and propose merges. The server generates commit IDs, new document IDs and release version names. Humans approve and publish in the workbench. Legacy version reads remain compatible; converted projects reject legacy draft writes. Runtime tool discovery supplies the complete supported schemas.
 
 ## Automated Releases
 

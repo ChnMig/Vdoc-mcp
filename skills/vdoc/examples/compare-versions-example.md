@@ -1,46 +1,45 @@
-# Compare Versions Example
+# Compare immutable commits
 
-Use this workflow before migration advice or frontend impact analysis. The IDs below are placeholders; resolve real IDs with Vdoc MCP and never paste MCP tokens, JWTs, Authorization headers, or copied secret values into examples.
-
-## Compare Two Published Versions
-
-Resolve the requested branch names with `list_document_branches` and select the two versions from `list_api_versions` by `branch_id` and `version_name`. Report both branch/version selections, especially for a cross-branch comparison. Do not silently compare the newest entries across all branches.
+Resolve both branch/release references on the selected server, then keep the full returned commit IDs. Comparisons can cover unpublished commits, the same branch or different branches. Never compare moving branch labels or silently choose a different project.
 
 ```json
 {
   "jsonrpc": "2.0",
-  "id": "compare-versions-example",
+  "id": "compare-commits-example",
   "method": "tools/call",
   "params": {
-    "name": "compare_api_versions",
+    "name": "compare_commits",
     "arguments": {
-      "project_id": "proj_placeholder",
-      "document_id": "doc_placeholder",
-      "from_version_id": "ver_placeholder_from",
-      "to_version_id": "ver_placeholder_to"
+      "project_id": "project_returned_id",
+      "from_commit_id": "full_baseline_commit_id_returned_by_server",
+      "to_commit_id": "full_target_commit_id_returned_by_server"
     }
   }
 }
 ```
 
-Use the returned diff items as the source of truth. For each item, preserve fields such as `location`, `message`, `old_value`, `new_value`, `frontend_impact`, `is_breaking`, and `must_handle`.
+Use returned old/new bytes and semantic evidence. Keep is_breaking and must_handle independent. A filtered comparison is incomplete for the full project; invalid semantic status does not prove compatibility. Cite the comparison direction and both immutable IDs.
 
-## Get A Must-handle And Optional Summary
+Run AI analysis separately against these same IDs:
 
 ```json
 {
   "jsonrpc": "2.0",
-  "id": "change-summary-example",
+  "id": "analyze-commits-example",
   "method": "tools/call",
   "params": {
-    "name": "get_change_summary",
+    "name": "analyze_changes",
     "arguments": {
-      "project_id": "proj_placeholder",
-      "document_id": "doc_placeholder",
-      "diff_id": "diff_placeholder"
+      "project_id": "project_returned_id",
+      "from_commit_id": "full_baseline_commit_id_returned_by_server",
+      "to_commit_id": "full_target_commit_id_returned_by_server",
+      "message": "Explain client changes supported by this comparison.",
+      "language": "English"
     }
   }
 }
 ```
 
-Report required/breaking items first, then optional/non-breaking items. Preserve `must_handle` and `is_breaking` independently; a required fix is not automatically a breaking change.
+Report the returned analysis ID/status, input commits and any truncated evidence. Failed/running output is not a successful analysis. Only a verified release establishes publication.
+
+Legacy published versions can still use compare_api_versions/compare_doc_versions with exact legacy version IDs. A version_id is not a commit_id; resolve each namespace through its own tools.
