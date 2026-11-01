@@ -317,7 +317,8 @@
       "optional": [
         "branch_id",
         "commit_id",
-        "release_id"
+        "release_id",
+        "document_id"
       ],
       "required_any_of": [
         [
@@ -340,7 +341,9 @@
       "required": [
         "project_id"
       ],
-      "optional": []
+      "optional": [
+        "document_id"
+      ]
     },
     {
       "name": "create_branch",
@@ -353,7 +356,9 @@
         "name",
         "from_commit_id"
       ],
-      "optional": []
+      "optional": [
+        "document_id"
+      ]
     },
     {
       "name": "list_commits",
@@ -380,7 +385,9 @@
         "project_id",
         "commit_id"
       ],
-      "optional": []
+      "optional": [
+        "document_id"
+      ]
     },
     {
       "name": "get_document_at_commit",
@@ -410,7 +417,8 @@
         "changes"
       ],
       "optional": [
-        "message"
+        "message",
+        "document_id"
       ],
       "argument_schemas": {
         "expected_generation": {
@@ -512,7 +520,9 @@
       "required": [
         "project_id"
       ],
-      "optional": []
+      "optional": [
+        "document_id"
+      ]
     },
     {
       "name": "create_merge_request",
@@ -526,7 +536,8 @@
         "target_branch_id"
       ],
       "optional": [
-        "title"
+        "title",
+        "document_id"
       ]
     },
     {
@@ -538,7 +549,9 @@
       "required": [
         "project_id"
       ],
-      "optional": []
+      "optional": [
+        "document_id"
+      ]
     },
     {
       "name": "get_release",
@@ -550,7 +563,9 @@
         "project_id",
         "release_id"
       ],
-      "optional": []
+      "optional": [
+        "document_id"
+      ]
     },
     {
       "name": "analyze_changes",
@@ -579,12 +594,42 @@
         "project_id"
       ],
       "optional": [
-        "after"
+        "after",
+        "document_id"
       ],
       "argument_schemas": {
         "after": {
           "type": "integer",
           "minimum": 0
+        }
+      }
+    },
+    {
+      "name": "create_document",
+      "scopes_any": [
+        "api:draft",
+        "doc:draft"
+      ],
+      "required": [
+        "project_id",
+        "name",
+        "relative_path",
+        "document_type",
+        "content",
+        "idempotency_key"
+      ],
+      "optional": [
+        "description",
+        "initial_branch"
+      ],
+      "argument_schemas": {
+        "document_type": {
+          "type": "integer",
+          "enum": [
+            1,
+            2,
+            3
+          ]
         }
       }
     }
