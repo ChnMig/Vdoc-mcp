@@ -2,7 +2,7 @@
 // Standalone installer: only Node.js built-ins are required before installation.
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { lstat, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { isAbsolute, join, parse, relative, resolve, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -252,9 +252,15 @@ export async function installChannel({ channel = "release", prefix, homeDirector
     await inspectPrefix(target, channel, true);
     await writeFile(join(target, markerName), JSON.stringify({ repository, channel }, null, 2) + "\n");
     await npmInstall(localArchive, target);
-    const packageRoot = join(target, "node_modules", "@vdoc", "mcp");
+    // Releases before npm distribution used @vdoc/mcp. Keep their stable
+    // archives installable while new releases use the publisher's npm scope.
+    let packageRoot = join(target, "node_modules", "@chnmig", "vdoc-mcp");
+    if (!await stat(packageRoot).catch(error => {
+      if (error.code === "ENOENT") return undefined;
+      throw error;
+    })) packageRoot = join(target, "node_modules", "@vdoc", "mcp");
     const pkg = JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8"));
-    if (pkg.name !== "@vdoc/mcp" || pkg.version !== version) throw new Error("Installed package does not match the selected release.");
+    if (!["@chnmig/vdoc-mcp", "@vdoc/mcp"].includes(pkg.name) || pkg.version !== version) throw new Error("Installed package does not match the selected release.");
     for (const path of [join(packageRoot, "dist", "index.js"), join(packageRoot, "scripts", "install-channel.mjs")]) {
       const file = await stat(path).catch(error => {
         if (error.code === "ENOENT") return undefined;
@@ -277,7 +283,7 @@ export async function installChannel({ channel = "release", prefix, homeDirector
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && await realpath(process.argv[1]).catch(() => undefined) === fileURLToPath(import.meta.url)) {
   try {
     if (Number(process.versions.node.split(".")[0]) < 20) throw new Error("Node.js 20 or newer is required.");
     const options = parseArgs(process.argv.slice(2));

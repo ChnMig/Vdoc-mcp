@@ -1,6 +1,6 @@
 {
-  "name": "@vdoc/mcp",
-  "version": "0.4.0-beta.5",
+  "name": "@chnmig/vdoc-mcp",
+  "version": "0.4.0-beta.6",
   "description": "Vdoc MCP stdio adapter for document management.",
   "license": "MIT",
   "type": "module",
@@ -33,5 +33,17 @@
   "devDependencies": {
     "@types/node": "^26.6.5",
     "typescript": "^7.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChnMig/Vdoc-mcp.git"
+  },
+  "homepage": "https://github.com/ChnMig/Vdoc-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/ChnMig/Vdoc-mcp/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

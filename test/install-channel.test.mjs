@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmod, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -10,6 +10,15 @@ import { chooseRelease, defaultNpmInstall, installChannel, parseArgs } from "../
 const repository = "ChnMig/Vdoc-mcp";
 const releasesURL = `https://api.github.com/repos/${repository}/releases?per_page=100&page=1`;
 const markerName = ".vdoc-mcp-channel.json";
+
+test("installer CLI runs through a symlink, including macOS temporary-directory aliases", { skip: process.platform === "win32" }, async t => {
+  const { root } = await fixture(t);
+  const entry = join(root, "install-vdoc.mjs");
+  await symlink(new URL("../scripts/install-channel.mjs", import.meta.url), entry);
+  const output = execFileSync(process.execPath, [entry, "--help"], { encoding: "utf8" });
+  assert.match(output, /--channel/);
+  assert.match(output, /--prefix/);
+});
 
 function release(tag, overrides = {}) {
   const version = tag.replace(/^v/, "");
@@ -74,17 +83,17 @@ async function fixture(t) {
   };
 }
 
-function mockNpmInstall({ mutatePackage } = {}) {
+function mockNpmInstall({ mutatePackage, packageName = "@vdoc/mcp" } = {}) {
   const calls = [];
   const npmInstall = async (archivePath, prefix) => {
     const bytes = await readFile(archivePath);
     const archivePackage = JSON.parse(bytes.toString());
     calls.push({ archivePath, prefix, bytes, version: archivePackage.version });
-    const packageDirectory = join(prefix, "node_modules/@vdoc/mcp");
+    const packageDirectory = join(prefix, "node_modules", ...packageName.split("/"));
     await mkdir(join(packageDirectory, "dist"), { recursive: true });
     await mkdir(join(packageDirectory, "scripts"), { recursive: true });
     await mkdir(join(prefix, "node_modules/.bin"), { recursive: true });
-    await writeFile(join(packageDirectory, "package.json"), JSON.stringify({ name: "@vdoc/mcp", version: archivePackage.version }));
+    await writeFile(join(packageDirectory, "package.json"), JSON.stringify({ name: packageName, version: archivePackage.version }));
     await writeFile(join(packageDirectory, "dist/index.js"), "// test CLI\n");
     await writeFile(join(packageDirectory, "scripts/install-channel.mjs"), "// test installer\n");
     await writeFile(join(prefix, "node_modules/.bin/vdoc-mcp"), "// test command\n");
@@ -96,6 +105,19 @@ function mockNpmInstall({ mutatePackage } = {}) {
 async function marker(prefix) {
   return JSON.parse(await readFile(join(prefix, markerName), "utf8"));
 }
+
+test("GitHub updater migrates an existing prefix to the public npm scope", async t => {
+  const { homeDirectory, betaPrefix: prefix } = await fixture(t);
+  const oldRelease = mockFetch([release("v0.4.0-beta.5")]);
+  await installChannel({ channel: "beta", prefix, homeDirectory, fetchImpl: oldRelease.fetchImpl, npmInstall: mockNpmInstall().npmInstall, log() {} });
+  const nextRelease = mockFetch([release("v0.4.0-beta.6")]);
+  const messages = [];
+  const result = await installChannel({ channel: "beta", prefix, homeDirectory, fetchImpl: nextRelease.fetchImpl, npmInstall: mockNpmInstall({ packageName: "@chnmig/vdoc-mcp" }).npmInstall, log: message => messages.push(message) });
+  assert.equal(result.prefix, prefix);
+  assert.equal(result.tag, "v0.4.0-beta.6");
+  assert.equal((await marker(prefix)).tag, result.tag);
+  assert.ok(messages.some(message => message.startsWith("Update:") && message.includes("node_modules/@chnmig/vdoc-mcp/scripts/install-channel.mjs")));
+});
 
 test("release selection excludes beta, drafts, and prerelease-flagged stable versions", () => {
   const stable = release("v1.2.3");

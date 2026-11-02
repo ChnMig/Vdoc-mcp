@@ -6,10 +6,13 @@ import test from "node:test";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { LoggingMessageNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { createVdocMCPServer } from "../dist/mcp-server.js";
+import { packageVersion } from "../dist/version.js";
 
 async function session(t, handler) {
   const backend = http.createServer(async (req, res) => {
+    res.setHeader("X-Vdoc-Server-Version", packageVersion);
     const chunks = [];
     for await (const chunk of req) chunks.push(chunk);
     handler(JSON.parse(Buffer.concat(chunks).toString()), res);
@@ -32,6 +35,69 @@ async function session(t, handler) {
   await client.connect(ct);
   return client;
 }
+
+test("matching server versions are silent and advertise MCP logging", async t => {
+  const client = await session(t, (body, res) => {
+    res.setHeader("X-Vdoc-Server-Version", `v${packageVersion}`);
+    res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { tools: [] } }));
+  });
+  const warnings = [];
+  client.setNotificationHandler(LoggingMessageNotificationSchema, notification => warnings.push(notification.params));
+  assert.ok(client.getServerCapabilities().logging);
+  await client.listTools();
+  assert.deepEqual(warnings, []);
+});
+
+test("version warnings report both versions, deduplicate and recover across backend changes", async t => {
+  let version = "0.0.1";
+  const client = await session(t, (body, res) => {
+    if (version === null) res.removeHeader("X-Vdoc-Server-Version");
+    else res.setHeader("X-Vdoc-Server-Version", version);
+    res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: body.method === "tools/list" ? { tools: [] } : { ok: true } }));
+  });
+  const warnings = [];
+  client.setNotificationHandler(LoggingMessageNotificationSchema, notification => warnings.push(notification.params));
+  await client.listTools();
+  assert.equal(warnings.length, 1);
+  assert.equal(warnings[0].level, "warning");
+  assert.equal(warnings[0].logger, "vdoc-version");
+  assert.equal(warnings[0].data.clientVersion, packageVersion);
+  assert.equal(warnings[0].data.serverVersion, "0.0.1");
+  assert.match(warnings[0].data.message, /restart MCP/);
+  const result = await client.callTool({ name: "fixture" });
+  assert.notEqual(result.isError, true);
+  assert.equal(result.content[0].text, '{"ok":true}');
+  assert.equal(warnings.length, 1);
+  version = "0.0.2";
+  await client.callTool({ name: "fixture" });
+  assert.equal(warnings.length, 2);
+  assert.equal(warnings[1].data.serverVersion, version);
+  version = packageVersion;
+  await client.listTools();
+  assert.equal(warnings.length, 2);
+  version = "0.0.2";
+  await client.listTools();
+  assert.equal(warnings.length, 3);
+  version = null;
+  await client.listTools();
+  await client.callTool({ name: "fixture" });
+  assert.equal(warnings.length, 4);
+  assert.equal(warnings[3].data.code, "server_version_unknown");
+  assert.equal(warnings[3].data.serverVersion, undefined);
+});
+
+test("client log filtering cannot make a version mismatch fail a successful tool call", async t => {
+  const client = await session(t, (body, res) => {
+    res.setHeader("X-Vdoc-Server-Version", "0.0.1");
+    res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { ok: true } }));
+  });
+  const warnings = [];
+  client.setNotificationHandler(LoggingMessageNotificationSchema, notification => warnings.push(notification.params));
+  await client.setLoggingLevel("error");
+  const result = await client.callTool({ name: "fixture" });
+  assert.notEqual(result.isError, true);
+  assert.deepEqual(warnings, []);
+});
 
 for (const name of ["get_endpoint_detail", "compare_api_versions"]) {
   test(`MCP preserves exact backend ${name} JSON`, async t => {

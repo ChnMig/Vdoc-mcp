@@ -88,3 +88,38 @@ jobs:
           fi
           gh release create "$RELEASE_TAG" release/* \
             --verify-tag --generate-notes --title "$RELEASE_TAG" "${options[@]}"
+
+  npm:
+    name: Publish npm channel
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && vars.NPM_TRUSTED_PUBLISHING == 'true'
+    needs: [verify, release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    concurrency:
+      group: mcp-npm-publish
+      cancel-in-progress: false
+    steps:
+      - name: Checkout tagged publish script
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 26.12.1
+          registry-url: https://registry.npmjs.org
+      - name: Download the verified archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: gh run download "$RUN_ID" --name mcp-release --dir .artifacts/release
+      - name: Publish the matching npm channel using OIDC
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          NPM_CONFIG_PROVENANCE: 'true'
+        run: bash scripts/publish-npm.sh "$RELEASE_TAG"

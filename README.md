@@ -4,25 +4,54 @@
 
 # Vdoc MCP
 
-`@vdoc/mcp` is the installable MCP stdio adapter for Vdoc document management. It forwards `tools/list` and `tools/call` requests to the Vdoc backend at `/api/v1/open/mcp`; business logic, authorization and persistence stay on the backend.
+`@chnmig/vdoc-mcp` is the MCP stdio adapter for Vdoc document management. It forwards `tools/list` and `tools/call` to the Vdoc backend at `/api/v1/open/mcp`; authorization, persistence and business logic stay on the backend. Your agent or application decides how to use the documents. No companion Skill is installed.
 
-Vdoc manages OpenAPI, Markdown and TXT documents, branches, immutable revisions, comparisons and merge proposals. The consuming agent or application decides how to use those documents in its business. No separate workflow package is required.
+## Install with npm
 
-## Channel installs: release or beta
+Requires Node.js 20+ and npm. The current release is a beta:
 
-Use channel installations when a stable environment should follow stable updates and a test environment should keep following beta updates. Each channel installs its own MCP adapter package. `@vdoc/mcp` is distributed through GitHub Releases; it is not published to the npm registry yet.
+```sh
+npx --yes @chnmig/vdoc-mcp@beta --version
+```
 
-| Channel | Selected published GitHub Release | Default installation prefix |
+Use the same package spec in the agent configuration; the adapter needs `VDOC_BASE_URL` and `VDOC_MCP_TOKEN` to connect. The `--version` flag above only checks the executable.
+
+| Channel | npx package spec | Updates |
 |---|---|---|
-| `release` | Highest `vMAJOR.MINOR.PATCH`, not marked prerelease | `$HOME/.local/share/vdoc/mcp/release` |
-| `beta` | Highest `vMAJOR.MINOR.PATCH-beta.N`, marked prerelease | `$HOME/.local/share/vdoc/mcp/beta` |
+| Beta | `@chnmig/vdoc-mcp@beta` | Latest published beta on each new MCP process |
+| Stable | `@chnmig/vdoc-mcp@latest` | Latest published stable release on each new MCP process |
 
-The standalone installer requires Node.js 20+ and npm; use a supported Node.js release, preferably Node.js 26.12.1 or newer. Download it from a reviewed release **containing the installer assets**, verify its separate checksum, and choose a channel. The example pins the standalone installer to `v0.4.0-beta.5`; historical releases made before the channel installer was introduced do not contain these assets.
+The first npm publication is beta only. `@latest` becomes available with the first stable npm release; beta publication never moves the stable tag. Restart MCP to resolve a new tag. A running process does not update in place. An unavailable channel fails instead of falling back to another channel.
+
+For a global command instead of npx:
+
+```sh
+npm install --global @chnmig/vdoc-mcp@beta
+vdoc-mcp --version
+# Update in the same channel:
+npm install --global @chnmig/vdoc-mcp@beta
+# Remove the global package only if no other project uses it:
+npm uninstall --global @chnmig/vdoc-mcp
+```
+
+For stable, substitute `@latest` after it is published. To keep a deployment on an exact version, use `@chnmig/vdoc-mcp@0.4.0-beta.6` instead of a moving tag. npm installation ships compiled JavaScript and does not need Git or a TypeScript compiler.
+
+The workbench provides a one-sentence install, update or uninstall prompt. Its [agent installation guide](https://github.com/ChnMig/Vdoc-site/blob/v0.4.0-beta.6/docs/public/mcp-install.md) covers private configuration and existing installations.
+
+## Client and server versions
+
+On the first successful backend request, the adapter reads `X-Vdoc-Server-Version` from the actual connected server and compares it with its own package version, including beta labels. A mismatch emits a warning through MCP logging and stderr with both versions and alignment advice. The tools remain available. Repeated warnings for the same state are suppressed; a changed server version is checked again.
+
+If an older server or proxy does not report a recognizable version, the adapter reports that the version could not be verified. Successful tool calls do not prove matching versions. Align the client and backend to the same release, or pin the client to the backend's exact version, then restart MCP. No separate version probe or document permission is required.
+
+## GitHub channel installations
+
+Existing GitHub channel installations remain supported. They install separately under `$HOME/.local/share/vdoc/mcp/release` and `$HOME/.local/share/vdoc/mcp/beta`. Download the standalone installer and its checksum from a reviewed release containing these assets:
 
 ```sh
 (
   set -eu
-  VDOC_MCP_INSTALLER_TAG="v0.4.0-beta.5"
+  VDOC_MCP_INSTALLER_TAG="v0.4.0-beta.6"
   VDOC_MCP_INSTALLER_DIR="$(mktemp -d)"
   trap 'rm -rf -- "$VDOC_MCP_INSTALLER_DIR"' EXIT
   VDOC_MCP_INSTALLER_RELEASE="https://github.com/ChnMig/Vdoc-mcp/releases/download/$VDOC_MCP_INSTALLER_TAG"
@@ -33,29 +62,13 @@ The standalone installer requires Node.js 20+ and npm; use a supported Node.js r
 )
 ```
 
-Use `--channel release` for stable installations. The installer lists GitHub Releases, selects the highest valid SemVer in that channel, downloads that exact tag's prebuilt `.tgz` and `SHA256SUMS`, verifies SHA-256, then runs `npm install --prefix ... --no-save --ignore-scripts --global=false`. It ignores drafts, unrecognized tags and other prerelease formats. An empty channel, API failure or invalid checksum stops installation; beta never falls back to stable or a branch.
+The installer selects the latest published release in its channel, verifies its archive against `SHA256SUMS`, and prints the absolute command and update command. Preserve its prefix and channel when updating. Stable uses `--channel release`. Existing global packages and agent settings are preserved.
 
-Each channel owns its dedicated prefix. `--prefix /absolute/dedicated/path` selects a custom location; existing unrelated files and a prefix already owned by the other channel are refused. No global MCP package or agent configuration is changed. The output provides the **absolute MCP command** to paste into your agent configuration.
+New packages use `node_modules/@chnmig/vdoc-mcp`; historical archives used `node_modules/@vdoc/mcp`. The new installer accepts both names. For the first upgrade from an older combined MCP/Skill package, use the newly downloaded installer, since older bundled updaters require the retired Skill files. Remove only an identifiable old Vdoc Skill link, preserving independently maintained files.
 
-Configure stable as `vdoc_release` with its stable backend URL/token, and beta as `vdoc_beta` with its test backend URL/token. See [Claude channel configuration](examples/channels.claude_desktop_config.json) and [Codex channel configuration](examples/codex-channels.toml); replace the absolute command placeholders with installer output. If both servers are enabled, select the environment explicitly when using tools. For test workflows, a separate agent profile or project with only `vdoc_beta` enabled keeps the environment selection clear.
+## Reproduce a workspace source version
 
-For **Claude Code**, merge the same `mcpServers` JSON into the top level of personal `~/.claude.json` (user scope), using the installer's absolute command and the corresponding backend URL/token. Preserve other servers, restart Claude Code, and inspect `/mcp`. Do not store tokens in the shared project `.mcp.json`. See the [official MCP guide](https://code.claude.com/docs/en/mcp-quickstart).
-
-For subsequent updates, run the installer bundled inside the installed channel package:
-
-```sh
-node "$HOME/.local/share/vdoc/mcp/beta/node_modules/@vdoc/mcp/scripts/install-channel.mjs" --channel beta
-node "$HOME/.local/share/vdoc/mcp/release/node_modules/@vdoc/mcp/scripts/install-channel.mjs" --channel release
-```
-
-For custom prefixes, keep passing the same `--prefix`. Each command updates only its selected channel. Updates occur when you run the command; there is no background updater. Restart the MCP process and reload the agent afterward. Publishing beta does not update the stable package or the stable Compose environment.
-
-## Install a pinned workspace version
-
-First [download and verify the Compose workspace bootstrap](https://chnmig.github.io/Vdoc-site/en/deployment). Its [source lock](https://github.com/ChnMig/Vdoc-site/blob/main/workspace/workspace.lock.json) is also browsable in Vdoc-site. Run the installation commands below from the extracted `vdoc-workspace` directory, or set `VDOC_WORKSPACE_LOCK` to its absolute lock path.
-
-`@vdoc/mcp` is not published to the npm registry yet. Resolve the adapter
-commit from a reviewed workspace bootstrap lock instead of a moving branch:
+The [verified Compose workspace bootstrap](https://chnmig.github.io/Vdoc-site/en/deployment) includes the exact source lock. For source reproduction, run from its extracted `vdoc-workspace` directory:
 
 ```sh
 (
@@ -67,17 +80,7 @@ commit from a reviewed workspace bootstrap lock instead of a moving branch:
 )
 ```
 
-For one-off agent usage, prefer the pinned `npx` GitHub source in the agent's
-MCP config. Replace `<VDOC_MCP_COMMIT_FROM_WORKSPACE_LOCK>` in the shipped
-examples with the resolved 40-character value before use. Do not remove the
-fragment or replace it with a moving branch name. The reviewed lock is
-distributed in the checksummed
-[Vdoc-site Docker Compose workspace bootstrap](https://chnmig.github.io/Vdoc-site/en/deployment);
-verify its `.sha256` file before running the workspace initializer.
-
-## Install a verified prebuilt archive
-
-As an alternative to channel installation, install the release selected by the reviewed workspace lock. Verify the archive before installing it; the release already contains the compiled adapter.
+The workspace source lock remains exact and independent of the convenient npm channels. To install the prebuilt archive for that lock instead:
 
 ```sh
 (
@@ -95,14 +98,6 @@ As an alternative to channel installation, install the release selected by the r
   npm install --global "$VDOC_MCP_PACKAGE_DIR/vdoc-mcp-$VDOC_MCP_VERSION.tgz"
 )
 ```
-
-Configure the installed `vdoc-mcp` command in the client. A Git-pinned `npx` configuration remains on its pinned commit until explicitly updated. The package is not published to the npm registry yet.
-
-## Upgrade from a combined MCP and Skill installation
-
-The adapter now ships on its own. For the first upgrade, download and verify the standalone channel installer from a reviewed release containing this change, as shown above, and reuse the existing channel and prefix. Older bundled installers require a Skill file that is no longer included. After this upgrade, the installed channel updater works normally.
-
-Remove the old Vdoc Skill entry from the corresponding agent/project scope. If it is a directory link created by `vdoc-mcp skill install`, remove only that link; preserve any independently maintained local files. The new installer does not modify agent directories. Restart MCP and reload the agent. Existing MCP connection settings and tokens remain usable.
 
 ## Tool discovery
 
@@ -200,7 +195,7 @@ scripts/vdoc-release-dry-run.sh --list
 scripts/vdoc-release-dry-run.sh
 ```
 
-The dry-run does not publish `@vdoc/mcp` or deploy any service.
+The dry-run does not publish `@chnmig/vdoc-mcp` or deploy any service.
 
 ## Agent Config Example
 
@@ -209,7 +204,7 @@ The dry-run does not publish `@vdoc/mcp` or deploy any service.
   "mcpServers": {
     "vdoc": {
       "command": "npx",
-      "args": ["--yes", "github:ChnMig/Vdoc-mcp#<VDOC_MCP_COMMIT_FROM_WORKSPACE_LOCK>"],
+      "args": ["--yes", "@chnmig/vdoc-mcp@beta"],
       "env": {
         "VDOC_BASE_URL": "https://your-vdoc.example.com",
         "VDOC_MCP_TOKEN": "REPLACE_WITH_LOCAL_VDOC_MCP_TOKEN"
@@ -235,7 +230,7 @@ Use `vMAJOR.MINOR.PATCH-beta.N` for channel beta, for example `v0.4.0-beta.1`: C
 
 For the first channel rollout, publish and verify the beta prerelease first, then publish the stable release from the same validated implementation with only the package version changed. Each tag needs its own matching manifest versions and four release assets. Before publishing a beta installation guide, verify that a `-beta.N` prerelease exists and pin its installer download to a reviewed release containing the installer assets. A stable release alone does not initialize the beta channel. Historical releases without the installer assets are rejected before npm runs; the installed package is also checked for its bundled channel updater.
 
-The adapter's MCP handshake and HTTP user-agent use the package version. This workflow uploads npm-format packages to GitHub Releases; npm registry publication remains separate.
+The MCP handshake and HTTP user-agent use the package version. Publish the verified GitHub archive to npm using `scripts/publish-npm.sh v<version>`. It selects `beta` for beta releases and `latest` for stable releases, and refuses other prerelease formats. The same archive is used for GitHub and npm. First publication uses an authenticated maintainer session; an optional GitHub trusted publisher can automate subsequent releases without a stored npm token.
 
 For local packaging, run `npm run release:package -- v0.3.10` with the version in the package manifests. Output stays in the ignored `.artifacts/release/` directory. After downloading a published archive and verifying `SHA256SUMS`, install it with `npm install -g ./vdoc-mcp-<version>.tgz`. Select the release matching the reviewed workspace lock.
 
@@ -247,3 +242,5 @@ npm run build
 npm test
 VDOC_LIVE_AUDIT_EMPTY_DATABASE_CONFIRM=1 npm run verify:live-audit
 ```
+
+To enable automatic npm releases after the first publication, add a trusted publisher in the npm package settings for GitHub owner `ChnMig`, repository `Vdoc-mcp`, workflow `ci.yml`, with direct publish allowed. Then set the GitHub repository variable `NPM_TRUSTED_PUBLISHING=true`. The optional npm job downloads the tested archive, validates its identity/checksum and uses OIDC with provenance. Until that trust is configured, GitHub releases remain automatic and an authenticated maintainer runs the publish script locally; no npm token is stored in the repository.

@@ -64,8 +64,10 @@ export class VdocRPCError extends Error {
   }
 }
 
-export async function listVdocTools(config: VdocMCPConfig, signal?: AbortSignal): Promise<VdocToolDefinition[]> {
-  const { result } = await callVdocRPC(config, "tools/list", undefined, signal);
+export type ServerVersionObserver = (version: string | null) => void | Promise<void>;
+
+export async function listVdocTools(config: VdocMCPConfig, signal?: AbortSignal, observeVersion?: ServerVersionObserver): Promise<VdocToolDefinition[]> {
+  const { result } = await callVdocRPC(config, "tools/list", undefined, signal, observeVersion);
   if (!isObject(result) || !Array.isArray(result.tools)) {
     throw new VdocRPCError("Vdoc tools/list returned an invalid result shape.");
   }
@@ -77,11 +79,12 @@ export async function callVdocTool(
   name: string,
   args: unknown,
   signal?: AbortSignal,
+  observeVersion?: ServerVersionObserver,
 ): Promise<string> {
   const { resultText } = await callVdocRPC(config, "tools/call", {
     name,
     arguments: isObject(args) ? args : {},
-  }, signal);
+  }, signal, observeVersion);
   // Tool results are JSON text in MCP. Keep the original number tokens instead
   // of round-tripping document facts through JavaScript's floating-point type.
   return resultText;
@@ -92,6 +95,7 @@ async function callVdocRPC(
   method: "tools/list" | "tools/call",
   params?: unknown,
   signal?: AbortSignal,
+  observeVersion?: ServerVersionObserver,
 ): Promise<JSONRPCSuccess> {
   const controller = new AbortController();
   let abortCause: "cancelled" | "timeout" | undefined;
@@ -129,6 +133,7 @@ async function callVdocRPC(
     if ("error" in payload) {
       throw new VdocRPCError(formatRPCErrorMessage(payload.error), payload.error.code, payload.error.data, config.token);
     }
+    await observeVersion?.(response.headers.get("x-vdoc-server-version"));
     return payload;
   } catch (error) {
     if (error instanceof VdocRPCError) {

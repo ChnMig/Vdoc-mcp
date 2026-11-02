@@ -24,6 +24,10 @@ JS
 stage="$(mktemp -d)"
 trap 'rm -rf -- "$stage"' EXIT
 npm pack --pack-destination "$stage"
+packed=("$stage/"*.tgz)
+[[ "${#packed[@]}" -eq 1 ]] || { printf 'Expected one npm archive\n' >&2; exit 1; }
+# Keep the public GitHub asset contract when the npm scope changes.
+mv "${packed[0]}" "$stage/vdoc-mcp-${release_tag#v}.tgz"
 (
   cd "$stage"
   shasum -a 256 ./*.tgz | sed 's|  ./|  |' >SHA256SUMS
