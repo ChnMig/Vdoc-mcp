@@ -2,27 +2,27 @@
   <img src="assets/vdoc-logo.png" width="96" height="96" alt="Vdoc logo" />
 </p>
 
-# Vdoc MCP and Skill
+# Vdoc MCP
 
-`@vdoc/mcp` contains the installable MCP stdio adapter and its optional [workflow Skill](skills/vdoc/README.md). It does not implement Vdoc business logic locally. It forwards MCP `tools/list` and `tools/call` requests to a Vdoc backend at `/api/v1/open/mcp`.
+`@vdoc/mcp` is the installable MCP stdio adapter for Vdoc document management. It forwards `tools/list` and `tools/call` requests to the Vdoc backend at `/api/v1/open/mcp`; business logic, authorization and persistence stay on the backend.
 
-Since v0.3.7, both are maintained and released in this repository. The Skill lives at `skills/vdoc/`; its original Git history is preserved by a subtree merge, with historical tags under `skill/`. The former Vdoc-skill repository is not required for new installations or releases.
+Vdoc manages OpenAPI, Markdown and TXT documents, branches, immutable revisions, comparisons and merge proposals. The consuming agent or application decides how to use those documents in its business. No separate workflow package is required.
 
 ## Channel installs: release or beta
 
-Use channel installations when a stable environment should follow stable updates and a test environment should keep following beta updates. The MCP adapter and bundled Skill always come from the same package. `@vdoc/mcp` is distributed through GitHub Releases; it is not published to the npm registry yet.
+Use channel installations when a stable environment should follow stable updates and a test environment should keep following beta updates. Each channel installs its own MCP adapter package. `@vdoc/mcp` is distributed through GitHub Releases; it is not published to the npm registry yet.
 
 | Channel | Selected published GitHub Release | Default installation prefix |
 |---|---|---|
 | `release` | Highest `vMAJOR.MINOR.PATCH`, not marked prerelease | `$HOME/.local/share/vdoc/mcp/release` |
 | `beta` | Highest `vMAJOR.MINOR.PATCH-beta.N`, marked prerelease | `$HOME/.local/share/vdoc/mcp/beta` |
 
-The standalone installer requires Node.js 20+ and npm; use a supported Node.js release, preferably Node.js 26.12.1 or newer. Download it from a reviewed release **containing the installer assets**, verify its separate checksum, and choose a channel. Replace the tag below with that exact release tag; historical releases made before the channel installer was introduced do not contain these assets.
+The standalone installer requires Node.js 20+ and npm; use a supported Node.js release, preferably Node.js 26.12.1 or newer. Download it from a reviewed release **containing the installer assets**, verify its separate checksum, and choose a channel. The example pins the standalone installer to `v0.4.0-beta.5`; historical releases made before the channel installer was introduced do not contain these assets.
 
 ```sh
 (
   set -eu
-  VDOC_MCP_INSTALLER_TAG="<REVIEWED_RELEASE_TAG_CONTAINING_INSTALLER>"
+  VDOC_MCP_INSTALLER_TAG="v0.4.0-beta.5"
   VDOC_MCP_INSTALLER_DIR="$(mktemp -d)"
   trap 'rm -rf -- "$VDOC_MCP_INSTALLER_DIR"' EXIT
   VDOC_MCP_INSTALLER_RELEASE="https://github.com/ChnMig/Vdoc-mcp/releases/download/$VDOC_MCP_INSTALLER_TAG"
@@ -35,19 +35,11 @@ The standalone installer requires Node.js 20+ and npm; use a supported Node.js r
 
 Use `--channel release` for stable installations. The installer lists GitHub Releases, selects the highest valid SemVer in that channel, downloads that exact tag's prebuilt `.tgz` and `SHA256SUMS`, verifies SHA-256, then runs `npm install --prefix ... --no-save --ignore-scripts --global=false`. It ignores drafts, unrecognized tags and other prerelease formats. An empty channel, API failure or invalid checksum stops installation; beta never falls back to stable or a branch.
 
-Each channel owns its dedicated prefix. `--prefix /absolute/dedicated/path` selects a custom location; existing unrelated files and a prefix already owned by the other channel are refused. No global MCP package, agent configuration or Skill directory is changed. The output provides the **absolute MCP command** to paste into your agent configuration.
+Each channel owns its dedicated prefix. `--prefix /absolute/dedicated/path` selects a custom location; existing unrelated files and a prefix already owned by the other channel are refused. No global MCP package or agent configuration is changed. The output provides the **absolute MCP command** to paste into your agent configuration.
 
 Configure stable as `vdoc_release` with its stable backend URL/token, and beta as `vdoc_beta` with its test backend URL/token. See [Claude channel configuration](examples/channels.claude_desktop_config.json) and [Codex channel configuration](examples/codex-channels.toml); replace the absolute command placeholders with installer output. If both servers are enabled, select the environment explicitly when using tools. For test workflows, a separate agent profile or project with only `vdoc_beta` enabled keeps the environment selection clear.
 
 For **Claude Code**, merge the same `mcpServers` JSON into the top level of personal `~/.claude.json` (user scope), using the installer's absolute command and the corresponding backend URL/token. Preserve other servers, restart Claude Code, and inspect `/mcp`. Do not store tokens in the shared project `.mcp.json`. See the [official MCP guide](https://code.claude.com/docs/en/mcp-quickstart).
-
-Link each package's Skill into the corresponding agent or project directory. For example, from the **beta test project**:
-
-```sh
-"$HOME/.local/share/vdoc/mcp/beta/node_modules/.bin/vdoc-mcp" skill install --directory .agents/skills/vdoc
-```
-
-Use the release binary from a different stable project to link its own `.agents/skills/vdoc`. Both bundled Skills have the name `vdoc`; install them into separate project or agent scopes. The link follows package updates at that prefix, and the installer refuses to overwrite an existing Skill. Keep personal edits separately.
 
 For subsequent updates, run the installer bundled inside the installed channel package:
 
@@ -56,7 +48,7 @@ node "$HOME/.local/share/vdoc/mcp/beta/node_modules/@vdoc/mcp/scripts/install-ch
 node "$HOME/.local/share/vdoc/mcp/release/node_modules/@vdoc/mcp/scripts/install-channel.mjs" --channel release
 ```
 
-For custom prefixes, keep passing the same `--prefix`. Each command updates only its selected channel and its linked Skill. Updates occur when you run the command; there is no background updater. Restart the MCP process and reload the agent afterward. Publishing beta does not update the stable package or the stable Compose environment.
+For custom prefixes, keep passing the same `--prefix`. Each command updates only its selected channel. Updates occur when you run the command; there is no background updater. Restart the MCP process and reload the agent afterward. Publishing beta does not update the stable package or the stable Compose environment.
 
 ## Install a pinned workspace version
 
@@ -83,9 +75,9 @@ distributed in the checksummed
 [Vdoc-site Docker Compose workspace bootstrap](https://chnmig.github.io/Vdoc-site/en/deployment);
 verify its `.sha256` file before running the workspace initializer.
 
-## Optional Skill and linked updates
+## Install a verified prebuilt archive
 
-Install the prebuilt release selected by the reviewed lock, verify its checksum, then link its bundled Skill. Global Git installs can fail during npm's source preparation with `tsc: command not found`; the release archive already contains the compiled adapter.
+As an alternative to channel installation, install the release selected by the reviewed workspace lock. Verify the archive before installing it; the release already contains the compiled adapter.
 
 ```sh
 (
@@ -101,31 +93,24 @@ Install the prebuilt release selected by the reviewed lock, verify its checksum,
   curl -fsSL "$VDOC_MCP_RELEASE/SHA256SUMS" -o "$VDOC_MCP_PACKAGE_DIR/SHA256SUMS"
   (cd "$VDOC_MCP_PACKAGE_DIR" && shasum -a 256 -c SHA256SUMS)
   npm install --global "$VDOC_MCP_PACKAGE_DIR/vdoc-mcp-$VDOC_MCP_VERSION.tgz"
-  vdoc-mcp skill install
 )
 ```
 
-To link an already installed package:
+Configure the installed `vdoc-mcp` command in the client. A Git-pinned `npx` configuration remains on its pinned commit until explicitly updated. The package is not published to the npm registry yet.
 
-```sh
-vdoc-mcp skill install
-# Or select a different agent/project skill directory
-vdoc-mcp skill install --directory "$HOME/.claude/skills/vdoc"
-```
+## Upgrade from a combined MCP and Skill installation
 
-The default directory is `$HOME/.agents/skills/vdoc`. The installer does not need credentials and refuses to replace an existing installation. Preserve local changes and move the previous directory before migrating from Git or Skills CLI. Do not edit the linked package files; keep personal rules separately.
+The adapter now ships on its own. For the first upgrade, download and verify the standalone channel installer from a reviewed release containing this change, as shown above, and reuse the existing channel and prefix. Older bundled installers require a Skill file that is no longer included. After this upgrade, the installed channel updater works normally.
 
-When the global MCP package is replaced at the same npm prefix, the directory link exposes the matching new Skill automatically, without `postinstall` hooks. To update, repeat the verified archive installation with the release from the newer reviewed lock. Once this package is published to npm and the user switches to a registry installation, `npm update --global @vdoc/mcp` can update both. No npm registry publication is claimed by this release.
-
-Restart the MCP process and reload the agent after updates. Configure the globally installed `vdoc-mcp` command in the client if it should use that installation; an existing `npx` configuration pinned to an older Git commit remains on that commit. Keep the global package installed at the same path; changing Node installations or npm prefixes requires relinking. Do not link a Skill from a temporary `npx` cache.
-
-For new installations and updates, prefer Vdoc's [channel installer](#channel-installs-release-or-beta) for the combined MCP + Skill package. Keep the same channel, prefix, and MCP connection settings when updating. Installing the package and linking the Skill require no backend URL or token; configure the MCP connection separately when you are ready to use its tools. Restart MCP and reload the agent after an update.
+Remove the old Vdoc Skill entry from the corresponding agent/project scope. If it is a directory link created by `vdoc-mcp skill install`, remove only that link; preserve any independently maintained local files. The new installer does not modify agent directories. Restart MCP and reload the agent. Existing MCP connection settings and tokens remain usable.
 
 ## Tool discovery
 
-Tool definitions are loaded from the deployed backend; the adapter has no hardcoded tool inventory. Updated backends expose `list_document_branches` to resolve a branch before its first publication, and `list_api_endpoints` to resolve endpoint IDs by version, method and exact path. Pair the updated backend with Vdoc Skill. Older release locks may still expose the earlier tool set.
+Tool definitions come from the deployed backend; the adapter has no hardcoded inventory. Discover the runtime schemas before making calls. Select the environment, project and document, list that document's branches, and resolve an exact commit before reading, comparing or saving.
 
-Document branches may have custom names such as `main` or `release/2026`; `feature/` is optional. Resolve the requested name with `list_document_branches` and pass its returned ID. The MCP tool arguments and permissions are unchanged; branch management and public-share creation remain Admin actions.
+Writes use the observed branch head/generation and a stable idempotency key. Conflicts require rereading and reconciliation; after an unknown outcome, retry the identical payload and key. Commit identities and numbered versions are generated by the backend. Only an exact release confirms publication; humans approve and publish in the workbench.
+
+Legacy tools remain available on deployments that support them. Their branch/version IDs are distinct from repository commit IDs. Never use legacy writes to bypass immutable document history.
 
 ## Configuration
 

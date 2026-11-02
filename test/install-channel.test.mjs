@@ -83,12 +83,10 @@ function mockNpmInstall({ mutatePackage } = {}) {
     const packageDirectory = join(prefix, "node_modules/@vdoc/mcp");
     await mkdir(join(packageDirectory, "dist"), { recursive: true });
     await mkdir(join(packageDirectory, "scripts"), { recursive: true });
-    await mkdir(join(packageDirectory, "skills/vdoc"), { recursive: true });
     await mkdir(join(prefix, "node_modules/.bin"), { recursive: true });
     await writeFile(join(packageDirectory, "package.json"), JSON.stringify({ name: "@vdoc/mcp", version: archivePackage.version }));
     await writeFile(join(packageDirectory, "dist/index.js"), "// test CLI\n");
     await writeFile(join(packageDirectory, "scripts/install-channel.mjs"), "// test installer\n");
-    await writeFile(join(packageDirectory, "skills/vdoc/SKILL.md"), `test skill ${archivePackage.version}\n`);
     await writeFile(join(prefix, "node_modules/.bin/vdoc-mcp"), "// test command\n");
     await mutatePackage?.(packageDirectory);
   };
@@ -176,7 +174,7 @@ test("installation verifies the downloaded archive and returns the channel-speci
   const installedMarker = await marker(prefix);
   assert.equal(installedMarker.repository, repository);
   assert.equal(installedMarker.channel, "beta");
-  assert.match(await readFile(join(prefix, "node_modules/@vdoc/mcp/skills/vdoc/SKILL.md"), "utf8"), /1\.2\.3-beta\.10/);
+  await assert.rejects(readdir(join(prefix, "node_modules/@vdoc/mcp/skills")), { code: "ENOENT" });
 });
 
 test("the default installation directory is isolated under the supplied home", async (t) => {
@@ -209,7 +207,7 @@ test("release discovery searches beyond a first page containing only beta releas
   assert.equal(npm.calls.length, 1);
 });
 
-test("beta and release installations keep packages, Skills, and unrelated global files separate", async (t) => {
+test("beta and release installations keep packages and unrelated global files separate", async (t) => {
   const { root, homeDirectory, betaPrefix, releasePrefix } = await fixture(t);
   const unrelated = join(root, "global/node_modules/@vdoc/mcp/package.json");
   await mkdir(join(root, "global/node_modules/@vdoc/mcp"), { recursive: true });
@@ -218,10 +216,8 @@ test("beta and release installations keep packages, Skills, and unrelated global
   const fetch = mockFetch([release("v1.2.3"), release("v1.2.4-beta.1")]);
   await installChannel({ channel: "release", prefix: releasePrefix, homeDirectory, fetchImpl: fetch.fetchImpl, npmInstall: npm.npmInstall, log() {} });
   const releasePackage = await readFile(join(releasePrefix, "node_modules/@vdoc/mcp/package.json"), "utf8");
-  const releaseSkill = await readFile(join(releasePrefix, "node_modules/@vdoc/mcp/skills/vdoc/SKILL.md"), "utf8");
   await installChannel({ channel: "beta", prefix: betaPrefix, homeDirectory, fetchImpl: fetch.fetchImpl, npmInstall: npm.npmInstall, log() {} });
   assert.equal(await readFile(join(releasePrefix, "node_modules/@vdoc/mcp/package.json"), "utf8"), releasePackage);
-  assert.equal(await readFile(join(releasePrefix, "node_modules/@vdoc/mcp/skills/vdoc/SKILL.md"), "utf8"), releaseSkill);
   assert.equal(await readFile(unrelated, "utf8"), "untouched global package\n");
   assert.equal((await marker(releasePrefix)).channel, "release");
   assert.equal((await marker(betaPrefix)).channel, "beta");
@@ -567,7 +563,7 @@ test("a historical stable package without its bundled installer fails before rep
   assert.equal((await marker(prefix)).tag, undefined, "an incomplete package must not be recorded as successfully installed");
 });
 
-test("installed package version and complete Skill contents must match the chosen release", async (t) => {
+test("installed package version, adapter and updater must match the chosen release", async (t) => {
   const { homeDirectory, releasePrefix: prefix } = await fixture(t);
   const fetch = mockFetch([release("v1.2.3")]);
   for (const mutatePackage of [
@@ -575,7 +571,6 @@ test("installed package version and complete Skill contents must match the chose
     (directory) => writeFile(join(directory, "package.json"), JSON.stringify({ name: "unrelated-package", version: "1.2.3" })),
     (directory) => rm(join(directory, "dist/index.js")),
     (directory) => rm(join(directory, "scripts/install-channel.mjs")),
-    (directory) => rm(join(directory, "skills/vdoc/SKILL.md")),
     (directory) => rm(join(directory, "../../.bin/vdoc-mcp")),
   ]) {
     const npm = mockNpmInstall({ mutatePackage });

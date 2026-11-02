@@ -255,20 +255,19 @@ export async function installChannel({ channel = "release", prefix, homeDirector
     const packageRoot = join(target, "node_modules", "@vdoc", "mcp");
     const pkg = JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8"));
     if (pkg.name !== "@vdoc/mcp" || pkg.version !== version) throw new Error("Installed package does not match the selected release.");
-    for (const path of [join(packageRoot, "dist", "index.js"), join(packageRoot, "skills", "vdoc", "SKILL.md"), join(packageRoot, "scripts", "install-channel.mjs")]) {
+    for (const path of [join(packageRoot, "dist", "index.js"), join(packageRoot, "scripts", "install-channel.mjs")]) {
       const file = await stat(path).catch(error => {
         if (error.code === "ENOENT") return undefined;
         throw error;
       });
-      if (!file?.isFile()) throw new Error("Release package is missing the prebuilt adapter, bundled Skill or channel updater. Select a release containing channel installation support.");
+      if (!file?.isFile()) throw new Error("Release package is missing the prebuilt adapter or channel updater. Select a release containing channel installation support.");
     }
     const command = join(target, "node_modules", ".bin", "vdoc-mcp");
     await stat(command);
     await writeFile(join(target, markerName), JSON.stringify({ repository, channel, tag: release.tag_name }, null, 2) + "\n");
-    log(`Installed Vdoc MCP + Skill ${release.tag_name} (${channel}).`);
+    log(`Installed Vdoc MCP ${release.tag_name} (${channel}).`);
     log(`MCP command: ${command}`);
     log("Use this absolute command in your agent config with the matching backend URL and token.");
-    log("Link its Skill to a separate agent/project skill directory with: <MCP command> skill install --directory <PATH>/vdoc");
     log(`Update: node ${shellQuote(join(packageRoot, "scripts", "install-channel.mjs"))} --channel ${channel} --prefix ${shellQuote(target)}`);
     log("Restart MCP and reload your agent after updating.");
     return { channel, tag: release.tag_name, prefix: target, command };
