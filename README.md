@@ -8,10 +8,10 @@
 
 ## Install with npm
 
-Requires Node.js 20+ and npm. The current release is a beta:
+Requires Node.js 20+ and npm. Use the stable release:
 
 ```sh
-npx --yes @chnmig/vdoc-mcp@beta --version
+npx --yes @chnmig/vdoc-mcp@latest --version
 ```
 
 Use the same package spec in the agent configuration; the adapter needs `VDOC_BASE_URL` and `VDOC_MCP_TOKEN` to connect. The `--version` flag above only checks the executable.
@@ -21,22 +21,22 @@ Use the same package spec in the agent configuration; the adapter needs `VDOC_BA
 | Beta | `@chnmig/vdoc-mcp@beta` | Latest published beta on each new MCP process |
 | Stable | `@chnmig/vdoc-mcp@latest` | Latest published stable release on each new MCP process |
 
-Use `@beta` for this prerelease series. npm initialized `@latest` to beta.6 on the first publication; it remains there until the first stable npm release. Later beta publications update only `@beta`. Restart MCP to resolve a new tag. A running process does not update in place. An unavailable channel fails instead of falling back to another channel.
+Use `@latest` with a stable backend and `@beta` with an isolated beta backend. Stable publications update only `@latest`; beta publications update only `@beta`. Restart MCP to resolve a new tag. A running process does not update in place. An unavailable channel fails instead of falling back to another channel.
 
 For a global command instead of npx:
 
 ```sh
-npm install --global @chnmig/vdoc-mcp@beta
+npm install --global @chnmig/vdoc-mcp@latest
 vdoc-mcp --version
 # Update in the same channel:
-npm install --global @chnmig/vdoc-mcp@beta
+npm install --global @chnmig/vdoc-mcp@latest
 # Remove the global package only if no other project uses it:
 npm uninstall --global @chnmig/vdoc-mcp
 ```
 
-For stable, substitute `@latest` after it is published. To keep a deployment on an exact version, use `@chnmig/vdoc-mcp@0.4.0-beta.7` instead of a moving tag. npm installation ships compiled JavaScript and does not need Git or a TypeScript compiler.
+For testing, substitute `@beta` and use the matching beta backend. To keep a deployment on an exact version, use `@chnmig/vdoc-mcp@0.4.0` instead of a moving tag. npm installation ships compiled JavaScript and does not need Git or a TypeScript compiler.
 
-The workbench provides a one-sentence install, update or uninstall prompt. Its [agent installation guide](https://github.com/ChnMig/Vdoc-site/blob/v0.4.0-beta.7/docs/public/mcp-install.md) covers private configuration and existing installations.
+The workbench provides a one-sentence install, update or uninstall prompt. Its [agent installation guide](https://github.com/ChnMig/Vdoc-site/blob/v0.4.0/docs/public/mcp-install.md) covers private configuration and existing installations.
 
 ## Client and server versions
 
@@ -51,18 +51,18 @@ Existing GitHub channel installations remain supported. They install separately 
 ```sh
 (
   set -eu
-  VDOC_MCP_INSTALLER_TAG="v0.4.0-beta.7"
+  VDOC_MCP_INSTALLER_TAG="v0.4.0"
   VDOC_MCP_INSTALLER_DIR="$(mktemp -d)"
   trap 'rm -rf -- "$VDOC_MCP_INSTALLER_DIR"' EXIT
   VDOC_MCP_INSTALLER_RELEASE="https://github.com/ChnMig/Vdoc-mcp/releases/download/$VDOC_MCP_INSTALLER_TAG"
   curl -fsSL "$VDOC_MCP_INSTALLER_RELEASE/install-channel.mjs" -o "$VDOC_MCP_INSTALLER_DIR/install-channel.mjs"
   curl -fsSL "$VDOC_MCP_INSTALLER_RELEASE/install-channel.mjs.sha256" -o "$VDOC_MCP_INSTALLER_DIR/install-channel.mjs.sha256"
   (cd "$VDOC_MCP_INSTALLER_DIR" && shasum -a 256 -c install-channel.mjs.sha256)
-  node "$VDOC_MCP_INSTALLER_DIR/install-channel.mjs" --channel beta
+  node "$VDOC_MCP_INSTALLER_DIR/install-channel.mjs" --channel release
 )
 ```
 
-The installer selects the latest published release in its channel, verifies its archive against `SHA256SUMS`, and prints the absolute command and update command. Preserve its prefix and channel when updating. Stable uses `--channel release`. Existing global packages and agent settings are preserved.
+The installer selects the latest published release in its channel, verifies its archive against `SHA256SUMS`, and prints the absolute command and update command. Preserve its prefix and channel when updating. Testing uses `--channel beta`. Existing global packages and agent settings are preserved.
 
 New packages use `node_modules/@chnmig/vdoc-mcp`; historical archives used `node_modules/@vdoc/mcp`. The new installer accepts both names. For the first upgrade from an older combined MCP/Skill package, use the newly downloaded installer, since older bundled updaters require the retired Skill files. Remove only an identifiable old Vdoc Skill link, preserving independently maintained files.
 
@@ -204,7 +204,7 @@ The dry-run does not publish `@chnmig/vdoc-mcp` or deploy any service.
   "mcpServers": {
     "vdoc": {
       "command": "npx",
-      "args": ["--yes", "@chnmig/vdoc-mcp@beta"],
+      "args": ["--yes", "@chnmig/vdoc-mcp@latest"],
       "env": {
         "VDOC_BASE_URL": "https://your-vdoc.example.com",
         "VDOC_MCP_TOKEN": "REPLACE_WITH_LOCAL_VDOC_MCP_TOKEN"

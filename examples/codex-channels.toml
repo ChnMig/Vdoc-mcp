@@ -1,4 +1,4 @@
-# Stable @latest becomes available with the first stable npm publication.
+# Stable uses @latest; the isolated beta environment uses @beta.
 # Store tokens in private configuration. Enable only the intended environment
 # in a dedicated stable or beta agent profile when possible.
 [mcp_servers.vdoc_release]
