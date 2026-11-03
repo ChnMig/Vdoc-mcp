@@ -21,7 +21,7 @@ Use the same package spec in the agent configuration; the adapter needs `VDOC_BA
 | Beta | `@chnmig/vdoc-mcp@beta` | Latest published beta on each new MCP process |
 | Stable | `@chnmig/vdoc-mcp@latest` | Latest published stable release on each new MCP process |
 
-The first npm publication is beta only. `@latest` becomes available with the first stable npm release; beta publication never moves the stable tag. Restart MCP to resolve a new tag. A running process does not update in place. An unavailable channel fails instead of falling back to another channel.
+Use `@beta` for this prerelease series. npm initialized `@latest` to beta.6 on the first publication; it remains there until the first stable npm release. Later beta publications update only `@beta`. Restart MCP to resolve a new tag. A running process does not update in place. An unavailable channel fails instead of falling back to another channel.
 
 For a global command instead of npx:
 
@@ -34,9 +34,9 @@ npm install --global @chnmig/vdoc-mcp@beta
 npm uninstall --global @chnmig/vdoc-mcp
 ```
 
-For stable, substitute `@latest` after it is published. To keep a deployment on an exact version, use `@chnmig/vdoc-mcp@0.4.0-beta.6` instead of a moving tag. npm installation ships compiled JavaScript and does not need Git or a TypeScript compiler.
+For stable, substitute `@latest` after it is published. To keep a deployment on an exact version, use `@chnmig/vdoc-mcp@0.4.0-beta.7` instead of a moving tag. npm installation ships compiled JavaScript and does not need Git or a TypeScript compiler.
 
-The workbench provides a one-sentence install, update or uninstall prompt. Its [agent installation guide](https://github.com/ChnMig/Vdoc-site/blob/v0.4.0-beta.6/docs/public/mcp-install.md) covers private configuration and existing installations.
+The workbench provides a one-sentence install, update or uninstall prompt. Its [agent installation guide](https://github.com/ChnMig/Vdoc-site/blob/v0.4.0-beta.7/docs/public/mcp-install.md) covers private configuration and existing installations.
 
 ## Client and server versions
 
@@ -51,7 +51,7 @@ Existing GitHub channel installations remain supported. They install separately 
 ```sh
 (
   set -eu
-  VDOC_MCP_INSTALLER_TAG="v0.4.0-beta.6"
+  VDOC_MCP_INSTALLER_TAG="v0.4.0-beta.7"
   VDOC_MCP_INSTALLER_DIR="$(mktemp -d)"
   trap 'rm -rf -- "$VDOC_MCP_INSTALLER_DIR"' EXIT
   VDOC_MCP_INSTALLER_RELEASE="https://github.com/ChnMig/Vdoc-mcp/releases/download/$VDOC_MCP_INSTALLER_TAG"
@@ -218,9 +218,15 @@ More examples are in `examples/`.
 
 ## Available Tools
 
-The backend is the source of truth for tool definitions. The adapter calls Vdoc `tools/list` at runtime, so tool schemas stay aligned with the deployed backend.
+The backend is the source of truth for remote tool definitions. The adapter calls Vdoc `tools/list` at runtime, so remote tool schemas stay aligned with the deployed backend. When `get_document_at_commit` is available, the adapter also exposes `download_document_at_commit` for local source-file downloads.
 
 The current MCP workflow uses immutable project commits: discover a branch, pin its head/generation, read exact content, compare commits, atomically append changes with an idempotency key, analyze exact revisions and propose merges. The server generates commit IDs, new document IDs and release version names. Humans approve and publish in the workbench. Legacy version reads remain compatible; converted projects reject legacy draft writes. Runtime tool discovery supplies the complete supported schemas.
+
+### Download a source file locally
+
+Ask the agent to download a document's chosen branch or release to an absolute file path. It resolves an exact commit, then calls `download_document_at_commit` with `project_id`, `document_id`, `commit_id` and `output_path` (for example `/home/me/project/docs/api.yaml`). The adapter saves the original UTF-8 bytes for OpenAPI JSON/YAML, Markdown or TXT, retaining comments, formatting, BOM and line endings. It verifies the source SHA-256 and returns `file_path`, `byte_length`, `sha256`, `commit_id` and `document_id`; it does not send the entire document back into the conversation.
+
+Downloads use the existing backend read permissions and audits, with a 10 MiB source-file limit. Missing parent directories are created. Files are created privately and existing destinations, including symlinks, are never overwritten; choose another filename if needed. Only the explicit `output_path` controls the destination. This tool runs in the stdio adapter: a remote/containerized adapter writes on that machine, so use a shared mount to access the file locally. A direct backend HTTP connection still returns content through `get_document_at_commit`.
 
 ## Automated Releases
 

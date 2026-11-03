@@ -25,6 +25,6 @@ const entries = readFileSync(join(dirname(archive), 'SHA256SUMS'), 'utf8').trim(
 if (entries.filter(line => line === `${sum}  ${basename(archive)}`).length !== 1) throw new Error('Release archive checksum mismatch');
 if (pkg.name !== '@chnmig/vdoc-mcp' || packed.name !== pkg.name || packed.version !== tag.slice(1) || pkg.version !== packed.version) throw new Error('Release tag, source and archive must match');
 JS
-options=()
+options=(publish "$archive" --registry=https://registry.npmjs.org/ --access public --tag "$channel")
 if [[ "$mode" == --dry-run ]]; then options+=(--dry-run); fi
-npm publish "$archive" --registry=https://registry.npmjs.org/ --access public --tag "$channel" "${options[@]}"
+npm "${options[@]}"

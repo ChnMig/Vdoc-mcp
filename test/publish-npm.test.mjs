@@ -33,10 +33,12 @@ async function fixture(t, version, packed = {}) {
 for (const [version, channel] of [["0.4.0-beta.6", "beta"], ["0.4.0", "latest"]]) {
   test(`npm publication of ${version} uses only ${channel} and the verified archive`, { skip: process.platform === "win32" }, async t => {
     const f = await fixture(t, version);
-    const result = f.run(`v${version}`, "--dry-run");
-    assert.equal(result.status, 0, result.stderr);
-    const args = (await readFile(f.calls, "utf8")).trim().split("\n");
-    assert.deepEqual(args, ["publish", f.archive, "--registry=https://registry.npmjs.org/", "--access", "public", "--tag", channel, "--dry-run"]);
+    for (const extra of [[], ["--dry-run"]]) {
+      const result = f.run(`v${version}`, ...extra);
+      assert.equal(result.status, 0, result.stderr);
+      const args = (await readFile(f.calls, "utf8")).trim().split("\n");
+      assert.deepEqual(args, ["publish", f.archive, "--registry=https://registry.npmjs.org/", "--access", "public", "--tag", channel, ...extra]);
+    }
   });
 }
 
