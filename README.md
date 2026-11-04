@@ -36,7 +36,7 @@ npm uninstall --global @chnmig/vdoc-mcp
 
 Use `@beta` with the matching beta backend and `@latest` with a stable backend. To keep a deployment on an exact version, use `@chnmig/vdoc-mcp@0.4.2` instead of a moving tag. npm installation ships compiled JavaScript and does not need Git or a TypeScript compiler.
 
-The workbench provides a one-sentence install, update or uninstall prompt. Its [agent installation guide](https://github.com/ChnMig/Vdoc-site/blob/v0.4.2/docs/public/mcp-install.md) covers private configuration and existing installations.
+The workbench provides a one-sentence global install, update or uninstall prompt. It installs the package for the current OS user and registers a user-wide MCP connection shared by projects. Its [agent installation guide](https://github.com/ChnMig/Vdoc-site/blob/v0.4.2/docs/public/mcp-install.md) covers private configuration and existing installations.
 
 ## Client and server versions
 
