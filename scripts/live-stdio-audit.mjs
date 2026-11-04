@@ -147,7 +147,7 @@ try {
   const token = await api("/api/v1/private/mcp-tokens", {
     method: "POST",
     jwt,
-    body: { name: `stdio-audit-${runId}`, scopes: [1] },
+    body: { name: `stdio-audit-${runId}`, scopes: [5] },
   });
   mcpTokenId = canonicalId(token?.id, "MCP token id");
   mcpToken = requiredString(token?.token, "MCP token secret");

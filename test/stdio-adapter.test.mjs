@@ -33,7 +33,7 @@ test("stdio adapter exposes backend tools through MCP", async (t) => {
   assert.match(client.getInstructions(), /search_documents/);
   assert.match(client.getInstructions(), /get_document_section/);
   assert.match(client.getInstructions(), /Parsing failures never prevent get_document_at_commit or raw downloads/);
-  assert.match(client.getInstructions(), /apply_document_patch requires read and draft scopes/);
+  assert.match(client.getInstructions(), /apply_document_patch requires read and write capabilities/);
   assert.match(client.getInstructions(), /independent branches and immutable commit history/);
   assert.match(client.getInstructions(), /idempotency key/);
   assert.match(client.getInstructions(), /The server generates commit IDs/);
