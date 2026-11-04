@@ -11,7 +11,7 @@
 Requires Node.js 20+ and npm. This development release uses the Beta channel:
 
 ```sh
-npx --yes @chnmig/vdoc-mcp@beta --version
+npx --yes @chnmig/vdoc-mcp@latest --version
 ```
 
 Use the same package spec in the agent configuration; the adapter needs `VDOC_BASE_URL` and `VDOC_MCP_TOKEN` to connect. The `--version` flag above only checks the executable.
@@ -34,9 +34,9 @@ npm install --global @chnmig/vdoc-mcp@latest
 npm uninstall --global @chnmig/vdoc-mcp
 ```
 
-Use `@beta` with the matching beta backend and `@latest` with a stable backend. To keep a deployment on an exact version, use `@chnmig/vdoc-mcp@0.4.1-beta.1` instead of a moving tag. npm installation ships compiled JavaScript and does not need Git or a TypeScript compiler.
+Use `@beta` with the matching beta backend and `@latest` with a stable backend. To keep a deployment on an exact version, use `@chnmig/vdoc-mcp@0.4.1` instead of a moving tag. npm installation ships compiled JavaScript and does not need Git or a TypeScript compiler.
 
-The workbench provides a one-sentence install, update or uninstall prompt. Its [agent installation guide](https://github.com/ChnMig/Vdoc-site/blob/v0.4.1-beta.1/docs/public/mcp-install.md) covers private configuration and existing installations.
+The workbench provides a one-sentence install, update or uninstall prompt. Its [agent installation guide](https://github.com/ChnMig/Vdoc-site/blob/v0.4.1/docs/public/mcp-install.md) covers private configuration and existing installations.
 
 ## Client and server versions
 
@@ -51,14 +51,14 @@ Existing GitHub channel installations remain supported. They install separately 
 ```sh
 (
   set -eu
-  VDOC_MCP_INSTALLER_TAG="v0.4.1-beta.1"
+  VDOC_MCP_INSTALLER_TAG="v0.4.1"
   VDOC_MCP_INSTALLER_DIR="$(mktemp -d)"
   trap 'rm -rf -- "$VDOC_MCP_INSTALLER_DIR"' EXIT
   VDOC_MCP_INSTALLER_RELEASE="https://github.com/ChnMig/Vdoc-mcp/releases/download/$VDOC_MCP_INSTALLER_TAG"
   curl -fsSL "$VDOC_MCP_INSTALLER_RELEASE/install-channel.mjs" -o "$VDOC_MCP_INSTALLER_DIR/install-channel.mjs"
   curl -fsSL "$VDOC_MCP_INSTALLER_RELEASE/install-channel.mjs.sha256" -o "$VDOC_MCP_INSTALLER_DIR/install-channel.mjs.sha256"
   (cd "$VDOC_MCP_INSTALLER_DIR" && shasum -a 256 -c install-channel.mjs.sha256)
-  node "$VDOC_MCP_INSTALLER_DIR/install-channel.mjs" --channel beta
+  node "$VDOC_MCP_INSTALLER_DIR/install-channel.mjs" --channel release
 )
 ```
 
@@ -204,7 +204,7 @@ The dry-run does not publish `@chnmig/vdoc-mcp` or deploy any service.
   "mcpServers": {
     "vdoc": {
       "command": "npx",
-      "args": ["--yes", "@chnmig/vdoc-mcp@beta"],
+      "args": ["--yes", "@chnmig/vdoc-mcp@latest"],
       "env": {
         "VDOC_BASE_URL": "https://your-vdoc.example.com",
         "VDOC_MCP_TOKEN": "REPLACE_WITH_LOCAL_VDOC_MCP_TOKEN"
