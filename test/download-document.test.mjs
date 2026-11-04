@@ -69,6 +69,7 @@ for (const [extension, source] of [
   ["json", '{ "openapi": "3.1.0", "example": 9007199254740993, "ratio": 0.123456789012345678901 }\n'],
   ["txt", "literal <tag> & \\ text\nno trailing newline"],
   ["txt", ""],
+  ["unknown", "\ufeffunparsed format {{{\r\n保留原始内容\r\n"],
 ]) {
   test(`downloads exact ${extension} source bytes without reformatting (${Buffer.byteLength(source)} bytes)`, async t => {
     const f = await fixture(t, source);

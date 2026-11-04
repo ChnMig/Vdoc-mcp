@@ -30,30 +30,36 @@ test("stdio adapter exposes backend tools through MCP", async (t) => {
 
   await client.connect(transport);
   assert.equal(client.getServerVersion().version, packageInfo.version);
-  assert.match(client.getInstructions(), /explicit branch_id/);
-  assert.match(client.getInstructions(), /get_doc_version/);
+  assert.match(client.getInstructions(), /search_documents/);
+  assert.match(client.getInstructions(), /get_document_section/);
+  assert.match(client.getInstructions(), /Parsing failures never prevent get_document_at_commit or raw downloads/);
+  assert.match(client.getInstructions(), /apply_document_patch requires read and draft scopes/);
   assert.match(client.getInstructions(), /independent branches and immutable commit history/);
   assert.match(client.getInstructions(), /idempotency key/);
   assert.match(client.getInstructions(), /The server generates commit IDs/);
 
   const tools = await client.listTools();
-  assert.deepEqual(tools.tools.map((tool) => tool.name), ["list_projects", "list_document_branches", "list_api_endpoints", "commit_changes"]);
+  assert.deepEqual(tools.tools.map((tool) => tool.name), ["list_projects", "list_branches", "get_document_section", "search_documents", "apply_document_patch", "commit_changes"]);
 
   const result = await client.callTool({ name: "list_projects", arguments: {} });
   assert.equal(result.isError, undefined);
   assert.equal(result.content[0].type, "text");
   assert.deepEqual(JSON.parse(result.content[0].text), [{ id: "proj_1", name: "Example" }]);
 
-  const branches = await client.callTool({ name: "list_document_branches", arguments: { project_id: "proj_1", document_id: "doc_1" } });
+  const branches = await client.callTool({ name: "list_branches", arguments: { project_id: "proj_1", document_id: "doc_1" } });
   assert.equal(branches.isError, undefined);
   assert.equal(JSON.parse(branches.content[0].text)[0].id, "branch_1");
-  const endpoints = await client.callTool({ name: "list_api_endpoints", arguments: { project_id: "proj_1", document_id: "doc_1", version_id: "ver_1", method: "GET", path: "/widgets/{id}" } });
+  const endpoints = await client.callTool({ name: "get_document_section", arguments: { project_id: "proj_1", document_id: "doc_1", commit_id: "a".repeat(64), kind: "openapi_operation", method: "GET", path: "/widgets/{id}" } });
   assert.equal(endpoints.isError, undefined);
-  assert.equal(JSON.parse(endpoints.content[0].text)[0].id, "endpoint_1");
+  assert.equal(JSON.parse(endpoints.content[0].text).content_kind, "derived_json");
+  const search = await client.callTool({ name: "search_documents", arguments: { project_id: "proj_1", query: "原始", limit: 1 } });
+  assert.equal(JSON.parse(search.content[0].text).matches[0].snippet, "\ufeff原始\r\n");
+  const patch = await client.callTool({ name: "apply_document_patch", arguments: { project_id: "proj_1", document_id: "doc_1", branch_id: "branch_1", expected_head_commit_id: "a".repeat(64), expected_generation: 7, idempotency_key: "patch-stdio-fixture", edits: [{ old_text: "原始\r\n", new_text: "完整\r\n" }] } });
+  assert.equal(JSON.parse(patch.content[0].text).id, "c".repeat(64));
   const committed = await client.callTool({ name: "commit_changes", arguments: {
-    project_id: "proj_1", branch_id: "project_branch_1", expected_head_commit_id: "a".repeat(64),
+    project_id: "proj_1", document_id: "doc_1", branch_id: "branch_1", expected_head_commit_id: "a".repeat(64),
     expected_generation: 7, idempotency_key: "request-fixture-1",
-    changes: [{ operation: "upsert", relative_path: "empty.txt", name: "Empty", document_type: 3, content: "" }],
+    changes: [{ operation: "upsert", document_id: "doc_1", relative_path: "empty.txt", name: "Empty", document_type: 3, content: "" }],
   } });
   assert.equal(committed.isError, undefined);
   assert.equal(JSON.parse(committed.content[0].text).id, "b".repeat(64));
@@ -155,7 +161,7 @@ async function startBackendMock() {
           jsonrpc: "2.0",
           id: body.id,
           result: {
-            tools: ["list_projects", "list_document_branches", "list_api_endpoints", "commit_changes"].map((name) => ({ name, inputSchema: { type: "object" } })),
+            tools: ["list_projects", "list_branches", "get_document_section", "search_documents", "apply_document_patch", "commit_changes"].map((name) => ({ name, inputSchema: { type: "object" } })),
           },
         }));
         return;
@@ -163,12 +169,14 @@ async function startBackendMock() {
       if (body.method === "tools/call") {
         const fixtures = {
           list_projects: { args: {}, result: [{ id: "proj_1", name: "Example" }] },
-          list_document_branches: { args: { project_id: "proj_1", document_id: "doc_1" }, result: [{ id: "branch_1", name: "dev", document_id: "doc_1" }] },
-          list_api_endpoints: { args: { project_id: "proj_1", document_id: "doc_1", version_id: "ver_1", method: "GET", path: "/widgets/{id}" }, result: [{ id: "endpoint_1", method: "GET", path: "/widgets/{id}" }] },
+          list_branches: { args: { project_id: "proj_1", document_id: "doc_1" }, result: [{ id: "branch_1", name: "dev", document_id: "doc_1" }] },
+          get_document_section: { args: { project_id: "proj_1", document_id: "doc_1", commit_id: "a".repeat(64), kind: "openapi_operation", method: "GET", path: "/widgets/{id}" }, result: { content_kind: "derived_json", content: '{"path":"/widgets/{id}"}' } },
+          search_documents: { args: { project_id: "proj_1", query: "原始", limit: 1 }, result: { matches: [{ commit_id: "a".repeat(64), snippet: "\ufeff原始\r\n" }] } },
+          apply_document_patch: { args: { project_id: "proj_1", document_id: "doc_1", branch_id: "branch_1", expected_head_commit_id: "a".repeat(64), expected_generation: 7, idempotency_key: "patch-stdio-fixture", edits: [{ old_text: "原始\r\n", new_text: "完整\r\n" }] }, result: { id: "c".repeat(64) } },
           commit_changes: { args: {
-            project_id: "proj_1", branch_id: "project_branch_1", expected_head_commit_id: "a".repeat(64),
+            project_id: "proj_1", document_id: "doc_1", branch_id: "branch_1", expected_head_commit_id: "a".repeat(64),
             expected_generation: 7, idempotency_key: "request-fixture-1",
-            changes: [{ operation: "upsert", relative_path: "empty.txt", name: "Empty", document_type: 3, content: "" }],
+            changes: [{ operation: "upsert", document_id: "doc_1", relative_path: "empty.txt", name: "Empty", document_type: 3, content: "" }],
           }, result: { id: "b".repeat(64), parent_ids: ["a".repeat(64)] } },
         };
         const fixture = fixtures[body.params.name];
