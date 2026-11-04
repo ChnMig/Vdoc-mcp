@@ -37,9 +37,10 @@ test("stdio adapter exposes backend tools through MCP", async (t) => {
   assert.match(client.getInstructions(), /independent branches and immutable commit history/);
   assert.match(client.getInstructions(), /idempotency key/);
   assert.match(client.getInstructions(), /The server generates commit IDs/);
+  assert.match(client.getInstructions(), /delete_folder only removes empty folders/);
 
   const tools = await client.listTools();
-  assert.deepEqual(tools.tools.map((tool) => tool.name), ["list_projects", "list_branches", "get_document_section", "search_documents", "apply_document_patch", "commit_changes"]);
+  assert.deepEqual(tools.tools.map((tool) => tool.name), ["list_projects", "list_branches", "get_document_section", "search_documents", "apply_document_patch", "commit_changes", "list_folders", "create_folder", "update_folder", "delete_folder", "update_document", "delete_document"]);
 
   const result = await client.callTool({ name: "list_projects", arguments: {} });
   assert.equal(result.isError, undefined);
@@ -63,6 +64,18 @@ test("stdio adapter exposes backend tools through MCP", async (t) => {
   } });
   assert.equal(committed.isError, undefined);
   assert.equal(JSON.parse(committed.content[0].text).id, "b".repeat(64));
+  for (const [name, args, expected] of [
+    ["list_folders", { project_id: "proj_1" }, [{ path: "目录", name: "目录" }]],
+    ["create_folder", { project_id: "proj_1", name: "目录", parent_path: "" }, { path: "目录", name: "目录" }],
+    ["update_folder", { project_id: "proj_1", path: "目录/子目录", name: "新目录", parent_path: "" }, { path: "新目录", name: "新目录" }],
+    ["delete_folder", { project_id: "proj_1", path: "新目录" }, { deleted: true }],
+    ["update_document", { project_id: "proj_1", document_id: "doc_1", name: "新名称", relative_path: "文件.md", description: "" }, { id: "doc_1", name: "新名称", relative_path: "文件.md", description: "" }],
+    ["delete_document", { project_id: "proj_1", document_id: "doc_1" }, { deleted: true }],
+  ]) {
+    const response = await client.callTool({ name, arguments: args });
+    assert.equal(response.isError, undefined, name);
+    assert.deepEqual(JSON.parse(response.content[0].text), expected, name);
+  }
 });
 
 test("stdio discovery errors preserve code and safe data while removing nested credentials", async (t) => {
@@ -161,7 +174,7 @@ async function startBackendMock() {
           jsonrpc: "2.0",
           id: body.id,
           result: {
-            tools: ["list_projects", "list_branches", "get_document_section", "search_documents", "apply_document_patch", "commit_changes"].map((name) => ({ name, inputSchema: { type: "object" } })),
+            tools: ["list_projects", "list_branches", "get_document_section", "search_documents", "apply_document_patch", "commit_changes", "list_folders", "create_folder", "update_folder", "delete_folder", "update_document", "delete_document"].map((name) => ({ name, inputSchema: { type: "object" } })),
           },
         }));
         return;
@@ -169,6 +182,12 @@ async function startBackendMock() {
       if (body.method === "tools/call") {
         const fixtures = {
           list_projects: { args: {}, result: [{ id: "proj_1", name: "Example" }] },
+          list_folders: { args: { project_id: "proj_1" }, result: [{ path: "目录", name: "目录" }] },
+          create_folder: { args: { project_id: "proj_1", name: "目录", parent_path: "" }, result: { path: "目录", name: "目录" } },
+          update_folder: { args: { project_id: "proj_1", path: "目录/子目录", name: "新目录", parent_path: "" }, result: { path: "新目录", name: "新目录" } },
+          delete_folder: { args: { project_id: "proj_1", path: "新目录" }, result: { deleted: true } },
+          update_document: { args: { project_id: "proj_1", document_id: "doc_1", name: "新名称", relative_path: "文件.md", description: "" }, result: { id: "doc_1", name: "新名称", relative_path: "文件.md", description: "" } },
+          delete_document: { args: { project_id: "proj_1", document_id: "doc_1" }, result: { deleted: true } },
           list_branches: { args: { project_id: "proj_1", document_id: "doc_1" }, result: [{ id: "branch_1", name: "dev", document_id: "doc_1" }] },
           get_document_section: { args: { project_id: "proj_1", document_id: "doc_1", commit_id: "a".repeat(64), kind: "openapi_operation", method: "GET", path: "/widgets/{id}" }, result: { content_kind: "derived_json", content: '{"path":"/widgets/{id}"}' } },
           search_documents: { args: { project_id: "proj_1", query: "原始", limit: 1 }, result: { matches: [{ commit_id: "a".repeat(64), snippet: "\ufeff原始\r\n" }] } },
