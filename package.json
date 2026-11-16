@@ -1,6 +1,6 @@
 {
   "name": "@chnmig/vdoc-mcp",
-  "version": "0.4.6-beta.1",
+  "version": "0.4.6",
   "description": "Vdoc MCP stdio adapter for document management.",
   "license": "MIT",
   "type": "module",
