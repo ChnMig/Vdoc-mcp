@@ -2,7 +2,7 @@
 # Use @beta for an isolated beta backend; keep tokens private.
 [mcp_servers.vdoc]
 command = "npx"
-args = ["--yes", "@chnmig/vdoc-mcp@latest"]
+args = ["--yes", "@chnmig/vdoc-mcp@beta"]
 startup_timeout_sec = 60
 tool_timeout_sec = 180
 
