@@ -34,9 +34,9 @@ npm install --global @chnmig/vdoc-mcp@latest
 npm uninstall --global @chnmig/vdoc-mcp
 ```
 
-Use `@beta` with the matching beta backend and `@latest` with a stable backend. To keep a deployment on an exact version, use `@chnmig/vdoc-mcp@0.4.4` instead of a moving tag. npm installation ships compiled JavaScript and does not need Git or a TypeScript compiler.
+Use `@beta` with the matching beta backend and `@latest` with a stable backend. To keep a deployment on an exact version, use `@chnmig/vdoc-mcp@0.4.5` instead of a moving tag. npm installation ships compiled JavaScript and does not need Git or a TypeScript compiler.
 
-The workbench provides a one-sentence global install, update or uninstall prompt. It installs the package for the current OS user and registers a user-wide MCP connection shared by projects. Its [agent installation guide](https://github.com/ChnMig/Vdoc-site/blob/v0.4.4/docs/public/mcp-install.md) covers private configuration and existing installations.
+The workbench provides a one-sentence global install, update or uninstall prompt. It installs the package for the current OS user and registers a user-wide MCP connection shared by projects. Its [agent installation guide](https://github.com/ChnMig/Vdoc-site/blob/v0.4.5/docs/public/mcp-install.md) covers private configuration and existing installations.
 
 ## Client and server versions
 
@@ -51,7 +51,7 @@ Existing GitHub channel installations remain supported. They install separately 
 ```sh
 (
   set -eu
-  VDOC_MCP_INSTALLER_TAG="v0.4.4"
+  VDOC_MCP_INSTALLER_TAG="v0.4.5"
   VDOC_MCP_INSTALLER_DIR="$(mktemp -d)"
   trap 'rm -rf -- "$VDOC_MCP_INSTALLER_DIR"' EXIT
   VDOC_MCP_INSTALLER_RELEASE="https://github.com/ChnMig/Vdoc-mcp/releases/download/$VDOC_MCP_INSTALLER_TAG"
@@ -222,9 +222,11 @@ The backend is the source of truth for remote tool definitions. The adapter call
 
 The workbench’s **Copy path** retains team/project names and `project_id`; documents also include `document_id` and their exact `relative_path`, while folders use `path`. Use those IDs to scope MCP calls when different projects contain identical paths.
 
-v0.4.4 exposes 27 backend tools plus the local download tool (28 total). `list_folders` / `create_folder` discover and create folders; `update_folder(path, name?, parent_path?)` renames or moves them, with an empty parent selecting root. `delete_folder` deletes empty folders only. `update_document(document_id, name?, relative_path?, description?)` renames or moves a document, preserving its identity and immutable history. `delete_document` removes it from the active catalog and disables direct access and existing shares, retaining stored history and audits. All take `project_id`. Management requires project Admin membership and write capability; moves are limited to one project. New tokens use read (5) and write (6) capabilities across document formats. Existing tokens retain their original authorization; create a new token for unified capabilities. Private token lists, details and revocation belong to the token owner, including administrator accounts.
+v0.4.5 exposes 27 backend tools plus the local download tool (28 total). `list_folders` / `create_folder` discover and create folders; `update_folder(path, name?, parent_path?)` renames or moves them, with an empty parent selecting root. `delete_folder` deletes empty folders only. `update_document(document_id, name?, relative_path?, description?)` renames or moves a document, preserving its identity and immutable history. `delete_document` removes it from the active catalog and disables direct access and existing shares, retaining stored history and audits. All take `project_id`. Management requires project Admin membership and write capability; moves are limited to one project. New tokens use read (5) and write (6) capabilities across document formats. Existing tokens retain their original authorization; create a new token for unified capabilities. Private token lists, details and revocation belong to the token owner, including administrator accounts.
 
 The current MCP workflow uses immutable project commits: discover a branch, pin its head/generation, read exact content, compare commits, atomically append changes with an idempotency key, analyze exact revisions and propose merges. The server generates commit IDs, new document IDs and release version names. Humans approve and publish in the workbench. Legacy version reads remain compatible; converted projects reject legacy draft writes. Runtime tool discovery supplies the complete supported schemas.
+
+`compare_commits` returns `source_diff` by default, preserving source whitespace and line endings with changed lines, 3 context lines on each side, line ranges and added/removed counts. Preview text shares a 64 KiB budget per response and at most 20 hunks per file. Limits set `truncated`; omitted hunk text sets `content_omitted`. OpenAPI includes `semantic_summary`. Pass `include_content: true` for full `old_content` / `new_content` and `semantic_diff`, or read exact commit content or sections as needed. `analyze_changes` synchronously calls the configured server AI, so its latency also depends on the model and provider. Use `compare_commits` for a direct comparison.
 
 ### Download a source file locally
 
